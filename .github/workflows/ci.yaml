@@ -112,7 +112,7 @@ jobs:
         with:
           host: ${{ secrets.SERVIDOR2 }}
           username: azureuser
-          key: ${{ secrets.VM_SSH_KEY }}
+          key: ${{ secrets.VM_PROD_SSH_KEY }}
           port: 22
           timeout: 30s
           command_timeout: 15m
