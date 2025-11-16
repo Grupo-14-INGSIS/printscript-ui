@@ -135,3 +135,5 @@ jobs:
             docker image prune -af
 
             echo "VM2 deployment complete"
+
+  #un secret por cada valor
