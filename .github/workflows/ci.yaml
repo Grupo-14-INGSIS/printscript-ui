@@ -100,7 +100,10 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
 
+
     steps:
+      - name: Mostrar host
+      - run: echo "HOST=${{ secrets.VM2_HOST }}"
       - name: Deploy to VM2
         uses: appleboy/ssh-action@v1.0.3
         with:
