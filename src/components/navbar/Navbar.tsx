@@ -1,7 +1,8 @@
-import {AppBar, Box, Button, Container, Toolbar, Typography} from "@mui/material";
-import {Code, Rule} from "@mui/icons-material";
+import {AppBar, Box, Button, Container, Toolbar, Typography, Avatar} from "@mui/material";
+import {Code, Rule, Login, Logout} from "@mui/icons-material";
 import {ReactNode} from "react";
 import {useLocation, useNavigate} from "react-router-dom";
+import {useAuth} from "../../contexts/authContext";
 
 type PageType = {
     title: string;
@@ -22,6 +23,13 @@ const pages: PageType[] = [{
 export const Navbar = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const { user, isAuthenticated, logout } = useAuth();
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
+
     return (
         <AppBar position="static" elevation={0}>
             <Container maxWidth="xl">
@@ -40,7 +48,7 @@ export const Navbar = () => {
                         Printscript
                     </Typography>
                     <Box sx={{flexGrow: 1, display: {xs: 'none', md: 'flex'}, gap: '4px'}}>
-                        {pages.map((page) => (
+                        {isAuthenticated && pages.map((page) => (
                             <Button
                                 key={page.title}
                                 onClick={() => navigate(`${page.path}`)}
@@ -60,6 +68,55 @@ export const Navbar = () => {
                                 <Typography>{page.title}</Typography>
                             </Button>
                         ))}
+                    </Box>
+
+                    {/* Sección de autenticación */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        {!isAuthenticated ? (
+                            <Button
+                                startIcon={<Login />}
+                                onClick={() => navigate('/login')}
+                                sx={{
+                                    color: 'white',
+                                    borderColor: 'white',
+                                    "&:hover": {
+                                        backgroundColor: 'primary.dark',
+                                        borderColor: 'white',
+                                    }
+                                }}
+                                variant="outlined"
+                            >
+                                Log In
+                            </Button>
+                        ) : (
+                            <>
+                                {user?.picture && (
+                                    <Avatar
+                                        src={user.picture}
+                                        alt={user.name}
+                                        sx={{ width: 32, height: 32 }}
+                                    />
+                                )}
+                                <Typography sx={{ color: 'white', display: { xs: 'none', sm: 'block' } }}>
+                                    {user?.name || user?.email}
+                                </Typography>
+                                <Button
+                                    startIcon={<Logout />}
+                                    onClick={handleLogout}
+                                    sx={{
+                                        color: 'white',
+                                        borderColor: 'white',
+                                        "&:hover": {
+                                            backgroundColor: 'primary.dark',
+                                            borderColor: 'white',
+                                        }
+                                    }}
+                                    variant="outlined"
+                                >
+                                    Log Out
+                                </Button>
+                            </>
+                        )}
                     </Box>
                 </Toolbar>
             </Container>
