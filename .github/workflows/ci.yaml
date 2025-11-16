@@ -69,7 +69,7 @@ jobs:
   deploy-vm1:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
 
     steps:
       - name: Deploy to VM1
@@ -108,7 +108,7 @@ jobs:
   deploy-vm2:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
 
     steps:
       - name: Deploy to VM2
