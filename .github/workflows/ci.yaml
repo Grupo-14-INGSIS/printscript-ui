@@ -80,7 +80,7 @@ jobs:
           timeout: 30s
           command_timeout: 15m
           script: |
-            echo "🚀 Deploying to VM1..."
+            echo "Deploying to VM1..."
 
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
@@ -97,7 +97,7 @@ jobs:
 
             docker image prune -af
 
-            echo "✅ VM1 deployment complete"
+            echo "VM1 deployment complete"
 
   deploy-vm2:
     needs: build
@@ -117,7 +117,7 @@ jobs:
           timeout: 30s
           command_timeout: 15m
           script: |
-            echo "🚀 Deploying to VM2..."
+            echo "Deploying to VM2..."
 
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
@@ -134,4 +134,4 @@ jobs:
 
             docker image prune -af
 
-            echo "✅ VM2 deployment complete"
+            echo "VM2 deployment complete"
