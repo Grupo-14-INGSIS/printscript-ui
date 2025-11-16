@@ -74,7 +74,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVIDOR1 }}
-          username: ubuntu
+          username: azureuser
           key: ${{ secrets.VM_SSH_KEY }}
           port: 22
           timeout: 30s
@@ -111,7 +111,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVIDOR2 }}
-          username: ubuntu
+          username: azureuser
           key: ${{ secrets.VM_SSH_KEY }}
           port: 22
           timeout: 30s
