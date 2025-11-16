@@ -3,7 +3,7 @@ name: Build and Deploy to Multiple VMs
 on:
   push:
     branches:
-      - main
+      - master
   workflow_dispatch:
 
 env:
