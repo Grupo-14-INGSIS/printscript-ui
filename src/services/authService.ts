@@ -15,27 +15,30 @@ class AuthService {
     private readonly domain = import.meta.env.VITE_AUTH0_DOMAIN;
     private readonly clientId = import.meta.env.VITE_AUTH0_CLIENT_ID;
     private readonly audience = import.meta.env.VITE_AUTH0_AUDIENCE;
-    private readonly realm = import.meta.env.VITE_AUTH0_REALM || 'Username-Password-Authentication';
+    private readonly realm = import.meta.env.VITE_AUTH0_REALM || 'User-Pass-Auth';
     private readonly tokenKey = 'auth_token';
     private readonly userKey = 'auth_user';
 
     async login(credentials: LoginCredentials): Promise<AuthTokens> {
+        const params = {
+            grant_type: 'password',
+            username: credentials.username,
+            password: credentials.password,
+            audience: this.audience,
+            scope: 'openid profile email read:snippets write:snippets delete:snippets',
+            client_id: this.clientId,
+            realm: this.realm,
+        };
+
+        console.log('Login params:', params);
+
         const response = await fetch(`https://${this.domain}/oauth/token`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: new URLSearchParams({
-                grant_type: 'password',
-                username: credentials.username,
-                password: credentials.password,
-                audience: this.audience,
-                scope: 'openid profile email read:snippets write:snippets delete:snippets',
-                client_id: this.clientId,
-                realm: this.realm,
-            }),
+            body: new URLSearchParams(params),
         });
-
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error_description || 'Login failed');

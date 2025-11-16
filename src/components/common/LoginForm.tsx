@@ -30,7 +30,7 @@ export const LoginForm = () => {
                 <form onSubmit={handleSubmit} className="login-form">
                     {error && (
                         <div className="error-message">
-                            ⚠️ {error}
+                            {error}
                         </div>
                     )}
 
@@ -69,6 +69,12 @@ export const LoginForm = () => {
                     >
                         {isLoading ? 'Logging in...' : 'Log In'}
                     </button>
+                    <p style={{ textAlign: 'center', marginTop: '1rem', color: '#666' }}>
+                        Don't have an account?{' '}
+                        <a href="/signup" style={{ color: '#667eea', textDecoration: 'none' }}>
+                            Sign up
+                        </a>
+                    </p>
                 </form>
             </div>
         </div>
