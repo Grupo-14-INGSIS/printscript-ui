@@ -73,8 +73,8 @@ jobs:
       - name: Deploy to VM1
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.VM1_HOST }}
-          username: ${{ secrets.VM1_USER }}
+          host: ${{ secrets.SERVIDOR1 }}
+          username: ubuntu
           key: ${{ secrets.VM_SSH_KEY }}
           port: 22
           timeout: 30s
@@ -104,14 +104,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Mostrar host VM2 (debug)
-        run: echo "HOST=${{ secrets.VM2_HOST }}"
+      - name: Debug VM2 host
+        run: echo "HOST=${{ secrets.SERVIDOR2 }}"
 
       - name: Deploy to VM2
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.VM2_HOST }}
-          username: ${{ secrets.VM2_USER }}
+          host: ${{ secrets.SERVIDOR2 }}
+          username: ubuntu
           key: ${{ secrets.VM_SSH_KEY }}
           port: 22
           timeout: 30s
