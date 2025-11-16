@@ -82,7 +82,7 @@ jobs:
           script: |
             echo "Deploying to VM1..."
 
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
             docker pull ghcr.io/${{ github.repository_owner }}/printscript-ui:latest
 
@@ -119,7 +119,7 @@ jobs:
           script: |
             echo "Deploying to VM2..."
 
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
             docker pull ghcr.io/${{ github.repository_owner }}/printscript-ui:latest
 
