@@ -7,12 +7,17 @@ import RulesScreen from "./screens/Rules.tsx";
 import {LoginForm} from "./components/common/LoginForm.tsx";
 import {ProtectedRoute} from "./components/common/ProtectedRoute.tsx";
 import {AuthProvider} from "./contexts/authContext.tsx";
+import {SignupForm} from "./components/common/SignUpForm.tsx";
 // import {withAuthenticationRequired} from "@auth0/auth0-react";
 
 const router = createBrowserRouter([
     {
         path: "/login",
         element : <LoginForm />
+    },
+    {
+        path: "/signup",
+        element : <SignupForm />
     },
     {
         path: "/",
