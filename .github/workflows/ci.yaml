@@ -76,33 +76,35 @@ jobs:
           host: ${{ secrets.VM1_HOST }}
           username: ${{ secrets.VM1_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
+          port: 22
+          timeout: 30s
+          command_timeout: 15m
           script: |
             echo "🚀 Deploying to VM1..."
-            
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            
+
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
             docker pull ghcr.io/${{ github.repository_owner }}/printscript-ui:latest
-            
+
             docker stop printscript-ui || true
             docker rm printscript-ui || true
-            
+
             docker run -d \
               --name printscript-ui \
               --restart unless-stopped \
               -p 80:80 \
               ghcr.io/${{ github.repository_owner }}/printscript-ui:latest
-            
+
             docker image prune -af
-            
+
             echo "✅ VM1 deployment complete"
 
   deploy-vm2:
     needs: build
     runs-on: ubuntu-latest
 
-
     steps:
-      - name: Mostrar host
+      - name: Mostrar host VM2 (debug)
         run: echo "HOST=${{ secrets.VM2_HOST }}"
 
       - name: Deploy to VM2
@@ -111,22 +113,25 @@ jobs:
           host: ${{ secrets.VM2_HOST }}
           username: ${{ secrets.VM2_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
+          port: 22
+          timeout: 30s
+          command_timeout: 15m
           script: |
             echo "🚀 Deploying to VM2..."
-            
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            
+
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
             docker pull ghcr.io/${{ github.repository_owner }}/printscript-ui:latest
-            
+
             docker stop printscript-ui || true
             docker rm printscript-ui || true
-            
+
             docker run -d \
               --name printscript-ui \
               --restart unless-stopped \
               -p 80:80 \
               ghcr.io/${{ github.repository_owner }}/printscript-ui:latest
-            
+
             docker image prune -af
-            
+
             echo "✅ VM2 deployment complete"
