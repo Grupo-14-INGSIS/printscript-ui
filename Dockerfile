@@ -1,19 +1,31 @@
-# Etapa 1: Build de la aplicación (usando Node para ejecutar npm run build)
-FROM node:20 as builder
+# Build stage
+FROM node:20-alpine AS builder
+
 WORKDIR /app
+
+# Copy package files
 COPY package*.json ./
-RUN npm install
+
+# Install dependencies
+RUN npm ci
+
+# Copy source code
 COPY . .
-# Generamos el build de producción en la carpeta 'dist'
+
+# Build production bundle
 RUN npm run build
 
-# Etapa 2: Servir los archivos estáticos (usando un servidor web ligero como Nginx)
+# Production stage
 FROM nginx:alpine
-# Quitamos el html por defecto de nginx
-RUN rm -rf /usr/share/nginx/html/*
-# Copiamos los archivos de build generados en la etapa 'builder' a la carpeta de nginx
+
+# Copy built assets from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
-# Exponemos el puerto estándar de Nginx
+
+# Copy custom nginx config (opcional, ver abajo)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Expose port
 EXPOSE 80
-# Comando para iniciar Nginx
+
+# Start nginx
 CMD ["nginx", "-g", "daemon off;"]

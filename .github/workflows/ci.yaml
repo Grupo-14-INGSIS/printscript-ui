@@ -1,15 +1,139 @@
-name: Run UI Build
+name: Build and Deploy to Multiple VMs
 
-on: [push]
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Use Node.js
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
-      - run: npm ci
-      - run: npm run build
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test --if-present
+
+      - name: Build production bundle
+        run: npm run build
+        env:
+          VITE_AUTH0_DOMAIN: ${{ secrets.VITE_AUTH0_DOMAIN }}
+          VITE_AUTH0_CLIENT_ID: ${{ secrets.VITE_AUTH0_CLIENT_ID }}
+          VITE_AUTH0_AUDIENCE: ${{ secrets.VITE_AUTH0_AUDIENCE }}
+          VITE_AUTH0_REALM: ${{ secrets.VITE_AUTH0_REALM }}
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/printscript-ui
+          tags: |
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  deploy-vm1:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to VM1
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVIDOR1 }}
+          username: azureuser
+          key: ${{ secrets.VM_SSH_KEY }}
+          port: 22
+          timeout: 30s
+          command_timeout: 15m
+          script: |
+            echo "Deploying to VM1..."
+
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+            docker pull ghcr.io/${{ github.repository_owner }}/printscript-ui:latest
+
+            docker stop printscript-ui || true
+            docker rm printscript-ui || true
+
+            docker run -d \
+              --name printscript-ui \
+              --restart unless-stopped \
+              -p 80:80 \
+              ghcr.io/${{ github.repository_owner }}/printscript-ui:latest
+
+            docker image prune -af
+
+            echo "VM1 deployment complete"
+
+  deploy-vm2:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Debug VM2 host
+        run: echo "HOST=${{ secrets.SERVIDOR2 }}"
+
+      - name: Deploy to VM2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVIDOR2 }}
+          username: azureuser
+          key: ${{ secrets.VM_PROD_SSH_KEY }}
+          port: 22
+          timeout: 30s
+          command_timeout: 15m
+          script: |
+            echo "Deploying to VM2..."
+
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+            docker pull ghcr.io/${{ github.repository_owner }}/printscript-ui:latest
+
+            docker stop printscript-ui || true
+            docker rm printscript-ui || true
+
+            docker run -d \
+              --name printscript-ui \
+              --restart unless-stopped \
+              -p 80:80 \
+              ghcr.io/${{ github.repository_owner }}/printscript-ui:latest
+
+            docker image prune -af
+
+            echo "VM2 deployment complete"
+
+  #un secret por cada valor
