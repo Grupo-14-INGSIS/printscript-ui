@@ -1,13 +1,11 @@
-import { SnippetOperations } from "../utils/snippetOperations.ts";
-import { CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet } from "../utils/snippet.ts";
-import { PaginatedUsers } from "../utils/users.ts";
 import { TestCase } from "../types/TestCase.ts";
 import { Rule } from "../types/Rule.ts";
-import { FileType } from "../types/FileType.ts";
 import { TestCaseResult } from "../utils/queries.tsx";
 import { BACKEND_URL } from "../utils/constants.ts";
 
-export class ApiSnippetOperations implements SnippetOperations {
+
+export class ApiSnippetOperations  {
+
     private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
         const url = `${BACKEND_URL}${endpoint}`;
         const defaultOptions: RequestInit = {
@@ -69,63 +67,16 @@ export class ApiSnippetOperations implements SnippetOperations {
         });
     }
 
-    // --- Métodos de la interfaz SnippetOperations que no tienen endpoint proporcionado ---
-    // Si necesitas usar estos métodos, deberás proporcionar los endpoints correspondientes
-    // y adaptar la interfaz o crear nuevos métodos.
-
-    async listSnippetDescriptors(page: number, pageSize: number, snippetName?: string): Promise<PaginatedSnippets> {
-        throw new Error("Method 'listSnippetDescriptors' not implemented: No endpoint provided.");
-    }
-
-    async createSnippet(createSnippet: CreateSnippet): Promise<Snippet> {
-        throw new Error("Method 'createSnippet' not implemented: No endpoint provided.");
-    }
-    
-    async getSnippetById(id: string): Promise<Snippet | undefined> {
-        throw new Error("Method 'getSnippetById' not implemented: No endpoint provided.");
-    }
-
-    async updateSnippetById(id: string, updateSnippet: UpdateSnippet): Promise<Snippet> {
-        throw new Error("Method 'updateSnippetById' not implemented: No endpoint provided.");
-    }
-
-    async deleteSnippet(id: string): Promise<string> {
-        throw new Error("Method 'deleteSnippet' not implemented: No endpoint provided.");
-    }
-
-    async getUserFriends(name?: string, page?: number, pageSize?: number): Promise<PaginatedUsers> {
-        throw new Error("Method 'getUserFriends' not implemented: No endpoint provided.");
-    }
-
-    async shareSnippet(snippetId: string, userId: string): Promise<Snippet> {
-        throw new Error("Method 'shareSnippet' not implemented: No endpoint provided.");
-    }
-
-    async getTestCases(): Promise<TestCase[]> {
-        throw new Error("Method 'getTestCases' not implemented: No endpoint provided.");
-    }
-
-    async formatSnippet(snippet: string): Promise<string> {
-        throw new Error("Method 'formatSnippet' not implemented: No endpoint provided.");
-    }
-
-    async removeTestCase(id: string): Promise<string> {
-        throw new Error("Method 'removeTestCase' not implemented: No endpoint provided.");
-    }
-
-    async getFileTypes(): Promise<FileType[]> {
-        throw new Error("Method 'getFileTypes' not implemented: No endpoint provided.");
-    }
 
     // --- Implementaciones para los endpoints adicionales de SnippetRunnerController ---
 
     // GET /api/v1/execution/{executionId}/status
-    getExecutionStatus(executionId: string): Promise<any> {
+    getExecutionStatus(executionId: string): Promise<never> {
         return this.request<never>(`/api/v1/execution/${executionId}/status`);
     }
 
     // POST /api/v1/execution/{executionId}/input
-    postExecutionInput(executionId: string, input: any): Promise<any> {
+    postExecutionInput(executionId: string, input: never): Promise<never> {
         return this.request<never>(`/api/v1/execution/${executionId}/input`, {
             method: 'POST',
             body: JSON.stringify(input),
