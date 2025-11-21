@@ -39,4 +39,10 @@ export interface SnippetOperations {
   modifyFormatRule(newRules: Rule[]): Promise<Rule[]>
 
   modifyLintingRule(newRules: Rule[]): Promise<Rule[]>
+
+  getExecutionStatus(executionId: string): Promise<any>
+
+  postExecutionInput(executionId: string, input: any): Promise<any>
+
+  deleteExecution(executionId: string): Promise<void>
 }
