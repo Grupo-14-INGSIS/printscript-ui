@@ -2,9 +2,10 @@ import { TestCase } from "../types/TestCase.ts";
 import { Rule } from "../types/Rule.ts";
 import { TestCaseResult } from "../utils/queries.tsx";
 import { BACKEND_URL } from "../utils/constants.ts";
+import {SnippetOperations} from "../utils/snippetOperations.ts";
 
 
-export class ApiSnippetOperations  {
+export class ApiSnippetOperations implements SnippetOperations{
 
     private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
         const url = `${BACKEND_URL}${endpoint}`;
