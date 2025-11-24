@@ -1,23 +1,49 @@
 import {TestCase} from "../types/TestCase.ts";
 import {TestCaseResult} from "./queries.tsx";
 import {Rule} from "../types/Rule.ts";
+import {FileType} from "../types/FileType.ts";
+import {CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet} from "./snippet.ts";
+import {PaginatedUsers} from "./users.ts";
 
 export interface SnippetOperations {
-  getFormatRules(): Promise<Rule[]>
+    getFormatRules(): Promise<Rule[]>
 
-  getLintingRules(): Promise<Rule[]>
+    getLintingRules(): Promise<Rule[]>
 
-  postTestCase(testCase: Partial<TestCase>): Promise<TestCase>
+    getFileTypes(): Promise<FileType[]>
 
-  testSnippet(testCase: Partial<TestCase>): Promise<TestCaseResult>
+    postTestCase(testCase: Partial<TestCase>): Promise<TestCase>
 
-  modifyFormatRule(newRules: Rule[]): Promise<Rule[]>
+    testSnippet(testCase: Partial<TestCase>): Promise<TestCaseResult>
 
-  modifyLintingRule(newRules: Rule[]): Promise<Rule[]>
+    modifyFormatRule(newRules: Rule[]): Promise<Rule[]>
 
-  getExecutionStatus(executionId: string): Promise<never>
+    modifyLintingRule(newRules: Rule[]): Promise<Rule[]>
 
-  postExecutionInput(executionId: string, input: never): Promise<never>
+    getExecutionStatus(executionId: string): Promise<never>
 
-  deleteExecution(executionId: string): Promise<void>
+    postExecutionInput(executionId: string, input: never): Promise<never>
+
+    deleteExecution(executionId: string): Promise<void>
+
+    getUserFriends(name?: string,page?: number,pageSize?: number): Promise<PaginatedUsers>
+
+    createSnippet(createSnippet: CreateSnippet): Promise<Snippet>
+
+    getTestCases(): Promise<TestCase[]>
+
+    removeTestCase(id: string): Promise<string>
+
+    formatSnippet(snippet: string): Promise<string>
+
+    deleteSnippet(id: string): Promise<string>
+
+    getSnippetById(id: string): Promise<Snippet | undefined>
+
+    shareSnippet(snippetId: string,userId: string): Promise<Snippet>
+
+    updateSnippetById(id: string, updateSnippet: UpdateSnippet): Promise<Snippet>
+
+    listSnippetDescriptors(page: number,pageSize: number,sippetName?: string): Promise<PaginatedSnippets>
+
 }
