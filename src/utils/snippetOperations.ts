@@ -1,42 +1,49 @@
-import {CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet} from './snippet'
-import {PaginatedUsers} from "./users.ts";
 import {TestCase} from "../types/TestCase.ts";
 import {TestCaseResult} from "./queries.tsx";
-import {FileType} from "../types/FileType.ts";
 import {Rule} from "../types/Rule.ts";
+import {FileType} from "../types/FileType.ts";
+import {CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet} from "./snippet.ts";
+import {PaginatedUsers} from "./users.ts";
 
 export interface SnippetOperations {
-  listSnippetDescriptors(page: number,pageSize: number,sippetName?: string): Promise<PaginatedSnippets>
+    getFormatRules(): Promise<Rule[]>
 
-  createSnippet(createSnippet: CreateSnippet): Promise<Snippet>
+    getLintingRules(): Promise<Rule[]>
 
-  getSnippetById(id: string): Promise<Snippet | undefined>
+    getFileTypes(): Promise<FileType[]>
 
-  updateSnippetById(id: string, updateSnippet: UpdateSnippet): Promise<Snippet>
+    postTestCase(testCase: Partial<TestCase>): Promise<TestCase>
 
-  getUserFriends(name?: string,page?: number,pageSize?: number): Promise<PaginatedUsers>
+    testSnippet(testCase: Partial<TestCase>): Promise<TestCaseResult>
 
-  shareSnippet(snippetId: string,userId: string): Promise<Snippet>
+    modifyFormatRule(newRules: Rule[]): Promise<Rule[]>
 
-  getFormatRules(): Promise<Rule[]>
+    modifyLintingRule(newRules: Rule[]): Promise<Rule[]>
 
-  getLintingRules(): Promise<Rule[]>
+    getExecutionStatus(executionId: string): Promise<never>
 
-  getTestCases(): Promise<TestCase[]>
+    postExecutionInput(executionId: string, input: never): Promise<never>
 
-  formatSnippet(snippet: string): Promise<string>
+    deleteExecution(executionId: string): Promise<void>
 
-  postTestCase(testCase: Partial<TestCase>): Promise<TestCase>
+    getUserFriends(name?: string,page?: number,pageSize?: number): Promise<PaginatedUsers>
 
-  removeTestCase(id: string): Promise<string>
+    createSnippet(createSnippet: CreateSnippet): Promise<Snippet>
 
-  deleteSnippet(id: string): Promise<string>
+    getTestCases(): Promise<TestCase[]>
 
-  testSnippet(testCase: Partial<TestCase>): Promise<TestCaseResult>
+    removeTestCase(id: string): Promise<string>
 
-  getFileTypes(): Promise<FileType[]>
+    formatSnippet(snippet: string): Promise<string>
 
-  modifyFormatRule(newRules: Rule[]): Promise<Rule[]>
+    deleteSnippet(id: string): Promise<string>
 
-  modifyLintingRule(newRules: Rule[]): Promise<Rule[]>
+    getSnippetById(id: string): Promise<Snippet | undefined>
+
+    shareSnippet(snippetId: string,userId: string): Promise<Snippet>
+
+    updateSnippetById(id: string, updateSnippet: UpdateSnippet): Promise<Snippet>
+
+    listSnippetDescriptors(page: number,pageSize: number,sippetName?: string): Promise<PaginatedSnippets>
+
 }
