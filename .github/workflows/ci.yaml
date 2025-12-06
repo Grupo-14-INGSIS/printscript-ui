@@ -137,7 +137,7 @@ jobs:
             echo "VM2 deployment complete"
 
   notify-snippet-service:
-    needs: [deploy-vm1, deploy-vm2]
+    needs: [ deploy-vm1, deploy-vm2 ]
     runs-on: ubuntu-latest
     steps:
       - name: Notify snippet-service of deployment
@@ -149,9 +149,9 @@ jobs:
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/ing-sis/snippet-service/dispatches \
             -d '{
-              "event_type": "deploy_from_service",
+              "event_type": "new-image-ready",
               "client_payload": {
-                "branch": "${{ github.ref_name }}",
+                "environment": "production",
                 "service": "snippet-service"
-              }
-            }'
+                                  }
+           }
