@@ -152,6 +152,6 @@ jobs:
                    "event_type": "new-image-ready",
                    "client_payload": {
                      "environment": "develop",
-                     "service": "snippet-service"
+                     "service": "snippetsearcher-ui"
                                        }
                 }
