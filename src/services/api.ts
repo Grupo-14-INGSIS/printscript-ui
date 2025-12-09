@@ -27,7 +27,7 @@ export class ApiSnippetOperations implements SnippetOperations{
         
         const text = await response.text();
         return text ? JSON.parse(text) : ({} as T);
-    }
+    } 
 
     // --- Implementaciones según los endpoints proporcionados ---
 
