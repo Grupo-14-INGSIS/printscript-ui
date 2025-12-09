@@ -34,7 +34,7 @@ class AuthService {
         console.log(`
             VITE_AUTH0_DOMAIN:     ${domain}\n
             VITE_AUTH0_CLIENT_ID:  ${clientId}\n
-            VITE_AUTH0_AUDIENCE:   ${audience\n
+            VITE_AUTH0_AUDIENCE:   ${audience}\n
             VITE_AUTH0_REALM:      ${realm}
             `)
 
