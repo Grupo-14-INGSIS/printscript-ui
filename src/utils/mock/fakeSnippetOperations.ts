@@ -127,14 +127,17 @@ export class FakeSnippetOperations implements SnippetOperations {
     })
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   getExecutionStatus(_executionId: string): Promise<never> {
     return Promise.resolve(undefined as never);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   postExecutionInput(_executionId: string, _input: never): Promise<never> {
     return Promise.resolve(undefined as never);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   deleteExecution(_executionId: string): Promise<void> {
     return Promise.resolve(undefined);
   }

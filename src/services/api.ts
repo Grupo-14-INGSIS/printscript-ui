@@ -98,33 +98,42 @@ export class ApiSnippetOperations implements SnippetOperations{
     getFileTypes(): Promise<FileType[]> {
         throw new Error("Method not implemented.");
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     getUserFriends(_name?: string, _page?: number, _pageSize?: number): Promise<PaginatedUsers> {
         throw new Error("Method not implemented.");
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     createSnippet(_createSnippet: CreateSnippet): Promise<Snippet> {
         throw new Error("Method not implemented.");
     }
     getTestCases(): Promise<TestCase[]> {
         throw new Error("Method not implemented.");
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     removeTestCase(_id: string): Promise<string> {
         throw new Error("Method not implemented.");
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     formatSnippet(_snippet: string): Promise<string> {
         throw new Error("Method not implemented.");
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     deleteSnippet(_id: string): Promise<string> {
         throw new Error("Method not implemented.");
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     getSnippetById(_id: string): Promise<Snippet | undefined> {
         throw new Error("Method not implemented.");
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     shareSnippet(_snippetId: string, _userId: string): Promise<Snippet> {
         throw new Error("Method not implemented.");
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     updateSnippetById(_id: string, _updateSnippet: UpdateSnippet): Promise<Snippet> {
         throw new Error("Method not implemented.");
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     listSnippetDescriptors(_page: number, _pageSize: number, _sippetName?: string): Promise<PaginatedSnippets> {
         throw new Error("Method not implemented.");
     }

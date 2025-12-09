@@ -12,7 +12,7 @@ export type SnackbarContextType = {
 }
 
 
-// @ts-expect-error
-export const SnackbarContext = createContext<SnackbarContextType>(null)
+// @ts-expect-error - The context is initialized with undefined, but will be provided a value.
+const SnackbarContext = createContext<SnackbarContextType | undefined>(undefined);
 
 export const useSnackbarContext = (): SnackbarContextType => useContext(SnackbarContext)
