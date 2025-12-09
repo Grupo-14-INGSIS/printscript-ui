@@ -15,7 +15,7 @@ export class FakeSnippetOperations implements SnippetOperations {
 
   constructor() {
     autoBind(this)
-  }
+  } 
 
   createSnippet(createSnippet: CreateSnippet): Promise<Snippet> {
     return new Promise(resolve => {
