@@ -46,6 +46,7 @@ export const Navbar = () => {
                         }}
                     >
                         Printscript
+                        yes
                     </Typography>
                     <Box sx={{flexGrow: 1, display: {xs: 'none', md: 'flex'}, gap: '4px'}}>
                         {isAuthenticated && pages.map((page) => (
