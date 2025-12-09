@@ -19,6 +19,15 @@ class AuthService {
     private readonly tokenKey = 'auth_token';
     private readonly userKey = 'auth_user';
 
+    printCredentials(): void {
+        console.log(`
+            VITE_AUTH0_DOMAIN:     ${this.domain}
+            VITE_AUTH0_CLIENT_ID:  ${this.clientId}
+            VITE_AUTH0_AUDIENCE:   ${this.audience}
+            VITE_AUTH0_REALM:      ${this.realm}
+            `)
+    }
+
     async login(credentials: LoginCredentials): Promise<AuthTokens> {
         const params = {
             grant_type: 'password',
@@ -31,12 +40,7 @@ class AuthService {
         };
 
         console.log('Login params:', params);
-        console.log(`
-            VITE_AUTH0_DOMAIN:     ${this.domain}\n
-            VITE_AUTH0_CLIENT_ID:  ${this.clientId}\n
-            VITE_AUTH0_AUDIENCE:   ${this.audience}\n
-            VITE_AUTH0_REALM:      ${this.realm}
-            `)
+        this.printCredentials()
 
         const response = await fetch(`https://${this.domain}/oauth/token`, {
             method: 'POST',
