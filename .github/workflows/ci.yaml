@@ -1,21 +1,24 @@
-name: Build and Deploy to Multiple VMs
+name: CI/CD
+
+permissions:
+  contents: read
+  packages: write
 
 on:
   push:
     branches:
-      - master
+      - develop
+  pull_request:
+    branches:
+      - develop
   workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
     steps:
       - name: Checkout code
@@ -30,16 +33,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Lint code
+        run: npm run lint --if-present
+
       - name: Run tests
         run: npm test --if-present
 
+      - name: Debug Auth0 Domain
+        run: echo "VITE_AUTH0_DOMAIN value is ${{ secrets.VITE_AUTH0_DOMAIN }}"
+
+      - name: Create .env file
+        run: |
+          echo "VITE_AUTH0_DOMAIN=${{ secrets.VITE_AUTH0_DOMAIN }}" >> .env
+          echo "VITE_AUTH0_CLIENT_ID=${{ secrets.VITE_AUTH0_CLIENT_ID }}" >> .env
+          echo "VITE_AUTH0_AUDIENCE=${{ secrets.VITE_AUTH0_AUDIENCE }}" >> .env
+          echo "VITE_AUTH0_REALM=${{ secrets.VITE_AUTH0_REALM }}" >> .env
+          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> .env
+
       - name: Build production bundle
         run: npm run build
-        env:
-          VITE_AUTH0_DOMAIN: ${{ secrets.VITE_AUTH0_DOMAIN }}
-          VITE_AUTH0_CLIENT_ID: ${{ secrets.VITE_AUTH0_CLIENT_ID }}
-          VITE_AUTH0_AUDIENCE: ${{ secrets.VITE_AUTH0_AUDIENCE }}
-          VITE_AUTH0_REALM: ${{ secrets.VITE_AUTH0_REALM }}
 
       - name: Log in to Container Registry
         uses: docker/login-action@v3
@@ -48,110 +60,29 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/printscript-ui
-          tags: |
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ghcr.io/grupo-14-ingsis/printscript-ui:develop
 
-  deploy-vm1:
+  dispatch-to-infrastructure:
     needs: build
     runs-on: ubuntu-latest
-
     steps:
-      - name: Deploy to VM1
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVIDOR1 }}
-          username: azureuser
-          key: ${{ secrets.VM_SSH_KEY }}
-          port: 22
-          timeout: 30s
-          command_timeout: 15m
-          script: |
-            echo "Deploying to VM1..."
-
-            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-
-            docker pull ghcr.io/${{ github.repository_owner }}/printscript-ui:latest
-
-            docker stop printscript-ui || true
-            docker rm printscript-ui || true
-
-            docker run -d \
-              --name printscript-ui \
-              --restart unless-stopped \
-              -p 80:80 \
-              ghcr.io/${{ github.repository_owner }}/printscript-ui:latest
-
-            docker image prune -af
-
-            echo "VM1 deployment complete"
-
-  deploy-vm2:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Debug VM2 host
-        run: echo "HOST=${{ secrets.SERVIDOR2 }}"
-
-      - name: Deploy to VM2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVIDOR2 }}
-          username: azureuser
-          key: ${{ secrets.VM_PROD_SSH_KEY }}
-          port: 22
-          timeout: 30s
-          command_timeout: 15m
-          script: |
-            echo "Deploying to VM2..."
-
-            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-
-            docker pull ghcr.io/${{ github.repository_owner }}/printscript-ui:latest
-
-            docker stop printscript-ui || true
-            docker rm printscript-ui || true
-
-            docker run -d \
-              --name printscript-ui \
-              --restart unless-stopped \
-              -p 80:80 \
-              ghcr.io/${{ github.repository_owner }}/printscript-ui:latest
-
-            docker image prune -af
-
-            echo "VM2 deployment complete"
-
-  notify-snippet-service:
-    needs: [deploy-vm1, deploy-vm2]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Notify snippet-service of deployment
+      - name: Notify infrastructure of new image
         run: |
           curl -L \
             -X POST \
             -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.PAT_TOKEN }}" \
+            -H "Authorization: Bearer ${{ secrets.PAT }}" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/ing-sis/snippet-service/dispatches \
+            https://api.github.com/repos/Grupo-14-INGSIS/SnippetSearcher-Infrastructure/dispatches \
             -d '{
-              "event_type": "deploy_from_service",
+              "event_type": "new-image-ready",
               "client_payload": {
-                "branch": "${{ github.ref_name }}",
-                "service": "snippet-service"
+                "environment": "develop",
+                "service": "snippetsearcher-ui"
               }
             }'

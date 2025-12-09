@@ -2,8 +2,8 @@ import React from 'react';
 import App from './App.tsx'
 import './index.css'
 import {createRoot} from "react-dom/client";
-import {PaginationProvider} from "./contexts/paginationProvider.tsx";
-import {SnackbarProvider} from "./contexts/snackbarProvider.tsx";
+import {PaginationProvider} from "./contexts/paginationContext.tsx";
+import {SnackbarProvider} from "./contexts/snackbarContext.tsx";
 import {Auth0Provider} from "@auth0/auth0-react";
 
 createRoot(document.getElementById('root')!).render(

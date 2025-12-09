@@ -41,8 +41,12 @@ export const SignupForm = () => {
                 navigate('/login');
             }, 2000);
 
-        } catch (err: any) {
-            setError(err.message || 'Signup failed');
+        } catch (err) {
+            if (err instanceof Error) {
+                setError(err.message || 'Signup failed');
+            } else {
+                setError('An unknown error occurred during signup.');
+            }
         } finally {
             setIsLoading(false);
         }
