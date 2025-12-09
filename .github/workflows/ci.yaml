@@ -40,10 +40,8 @@ jobs:
         run: npm test --if-present
 
       - name: Debug Auth0 Domain
-        run: echo "VITE_AUTH0_DOMAIN value is: ${{ env.VITE_AUTH0_DOMAIN }}"
-        env:
-          VITE_AUTH0_DOMAIN: ${{ secrets.VITE_AUTH0_DOMAIN }}
-
+        run: echo "VITE_AUTH0_DOMAIN value is: ${{ secrets.VITE_AUTH0_DOMAIN }}"
+        
       - name: Build production bundle
         run: npm run build
         env:
