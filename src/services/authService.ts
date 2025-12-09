@@ -32,10 +32,10 @@ class AuthService {
 
         console.log('Login params:', params);
         console.log(`
-            VITE_AUTH0_DOMAIN:     ${domain}\n
-            VITE_AUTH0_CLIENT_ID:  ${clientId}\n
-            VITE_AUTH0_AUDIENCE:   ${audience}\n
-            VITE_AUTH0_REALM:      ${realm}
+            VITE_AUTH0_DOMAIN:     ${this.domain}\n
+            VITE_AUTH0_CLIENT_ID:  ${this.clientId}\n
+            VITE_AUTH0_AUDIENCE:   ${this.audience}\n
+            VITE_AUTH0_REALM:      ${this.realm}
             `)
 
         const response = await fetch(`https://${this.domain}/oauth/token`, {
