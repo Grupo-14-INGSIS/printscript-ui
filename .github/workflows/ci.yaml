@@ -35,13 +35,18 @@ jobs:
 
       - name: Lint code
         run: npm run lint --if-present
-        
+
       - name: Run tests
         run: npm test --if-present
 
-      - name: Debug Auth0 Domain
-        run: echo "VITE_AUTH0_DOMAIN value is: ${{ secrets.VITE_AUTH0_DOMAIN }}"
-        
+      - name: Check if secret exists
+        run: |
+          if [ -z "${{ secrets.VITE_AUTH0_DOMAIN }}" ]; then
+            echo "Secret EMPTY"
+            exit 1
+          else
+            echo "Secret SET"
+          fi
       - name: Build production bundle
         run: npm run build
         env:
