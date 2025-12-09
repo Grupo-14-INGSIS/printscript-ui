@@ -3,6 +3,9 @@ import { Rule } from "../types/Rule.ts";
 import { TestCaseResult } from "../utils/queries.tsx";
 import { BACKEND_URL } from "../utils/constants.ts";
 import {SnippetOperations} from "../utils/snippetOperations.ts";
+import {CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet} from "../utils/snippet.ts";
+import {PaginatedUsers} from "../utils/users.ts";
+import {FileType} from "../types/FileType.ts";
 
 
 export class ApiSnippetOperations implements SnippetOperations{
@@ -89,5 +92,40 @@ export class ApiSnippetOperations implements SnippetOperations{
         return this.request<void>(`/api/v1/execution/${executionId}`, {
             method: 'DELETE',
         });
+    }
+
+    // Métodos no implementados (placeholders)
+    getFileTypes(): Promise<FileType[]> {
+        throw new Error("Method not implemented.");
+    }
+    getUserFriends(_name?: string, _page?: number, _pageSize?: number): Promise<PaginatedUsers> {
+        throw new Error("Method not implemented.");
+    }
+    createSnippet(_createSnippet: CreateSnippet): Promise<Snippet> {
+        throw new Error("Method not implemented.");
+    }
+    getTestCases(): Promise<TestCase[]> {
+        throw new Error("Method not implemented.");
+    }
+    removeTestCase(_id: string): Promise<string> {
+        throw new Error("Method not implemented.");
+    }
+    formatSnippet(_snippet: string): Promise<string> {
+        throw new Error("Method not implemented.");
+    }
+    deleteSnippet(_id: string): Promise<string> {
+        throw new Error("Method not implemented.");
+    }
+    getSnippetById(_id: string): Promise<Snippet | undefined> {
+        throw new Error("Method not implemented.");
+    }
+    shareSnippet(_snippetId: string, _userId: string): Promise<Snippet> {
+        throw new Error("Method not implemented.");
+    }
+    updateSnippetById(_id: string, _updateSnippet: UpdateSnippet): Promise<Snippet> {
+        throw new Error("Method not implemented.");
+    }
+    listSnippetDescriptors(_page: number, _pageSize: number, _sippetName?: string): Promise<PaginatedSnippets> {
+        throw new Error("Method not implemented.");
     }
 }
