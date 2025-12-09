@@ -6,7 +6,8 @@ dotenv.config()
 export default defineConfig({
   e2e: {
     setupNodeEvents(_, config) {
-      config.env = process.env
+        console.log("defineConfig: " + process.env)
+        config.env = process.env
       return config
     },
     experimentalStudio: true,
