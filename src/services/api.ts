@@ -1,22 +1,26 @@
-import { TestCase } from "../types/TestCase.ts";
 import { Rule } from "../types/Rule.ts";
-import { TestCaseResult } from "../utils/queries.tsx";
 import { BACKEND_URL } from "../utils/constants.ts";
-import {SnippetOperations} from "../utils/snippetOperations.ts";
-import {CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet} from "../utils/snippet.ts";
-import {PaginatedUsers} from "../utils/users.ts";
-import {FileType} from "../types/FileType.ts";
+import { SnippetOperations } from "../utils/snippetOperations.ts";
+import { CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet } from "../utils/snippet.ts";
+import { PaginatedUsers } from "../utils/users.ts";
+import { FileType } from "../types/FileType.ts";
+import { authService } from "./authService.ts";
+import { TestCase } from "../types/TestCase.ts";
+import { TestCaseResult } from "../utils/queries.tsx";
 
 
-export class ApiSnippetOperations implements SnippetOperations{
+export class ApiSnippetOperations implements SnippetOperations {
 
     private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
         const url = `${BACKEND_URL}${endpoint}`;
-        const defaultOptions: RequestInit = {
-            headers: {
-                'Content-Type': 'application/json',
-            },
+        const token = authService.getAccessToken();
+
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
         };
+
+        const defaultOptions: RequestInit = { headers };
 
         const response = await fetch(url, { ...defaultOptions, ...options });
 
@@ -24,73 +28,82 @@ export class ApiSnippetOperations implements SnippetOperations{
             const errorBody = await response.text();
             throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
         }
-        
+
         const text = await response.text();
         return text ? JSON.parse(text) : ({} as T);
     }
 
-    // --- Implementaciones según los endpoints proporcionados ---
+    // --- Rules ---
 
-    // FormatterJobController: /api/v1/formatting/rules
-    getFormatRules(): Promise<Rule[]> {
-        return this.request<Rule[]>('/api/v1/formatting/rules');
+    getFormatRules(language = "printscript"): Promise<Rule[]> {
+        return this.request<Rule[]>(`/api/v1/rules?task=formatting&language=${language}`);
     }
 
-    modifyFormatRule(newRules: Rule[]): Promise<Rule[]> {
-        return this.request<Rule[]>('/api/v1/formatting/rules', {
-            method: 'POST',
-            body: JSON.stringify(newRules),
+    modifyFormatRule(rules: Rule[], language = "printscript"): Promise<void> {
+        const rulesMap = rules.reduce((acc, rule) => {
+            acc[rule.name] = rule.value;
+            return acc;
+        }, {} as Record<string, any>);
+
+        return this.request<void>('/api/v1/rules', {
+            method: 'PUT',
+            body: JSON.stringify({
+                task: 'formatting',
+                language,
+                rules: rulesMap,
+            }),
         });
     }
 
-    // LintingJobController: /api/v1/linting/rules
-    getLintingRules(): Promise<Rule[]> {
-        return this.request<Rule[]>('/api/v1/linting/rules');
+    getLintingRules(language = "printscript"): Promise<Rule[]> {
+        return this.request<Rule[]>(`/api/v1/rules?task=linting&language=${language}`);
     }
 
-    modifyLintingRule(newRules: Rule[]): Promise<Rule[]> {
-        return this.request<Rule[]>('/api/v1/linting/rules', {
-            method: 'POST',
-            body: JSON.stringify(newRules),
+    modifyLintingRule(rules: Rule[], language = "printscript"): Promise<void> {
+        const rulesMap = rules.reduce((acc, rule) => {
+            acc[rule.name] = rule.value;
+            return acc;
+        }, {} as Record<string, any>);
+
+        return this.request<void>('/api/v1/rules', {
+            method: 'PUT',
+            body: JSON.stringify({
+                task: 'linting',
+                language,
+                rules: rulesMap,
+            }),
         });
     }
     
-    // SnippetRunnerController: /api/v1/execution/run (POST)
-    testSnippet(testCase: Partial<TestCase>): Promise<TestCaseResult> {
-        return this.request<TestCaseResult>('/api/v1/execution/run', {
-            method: 'POST',
-            body: JSON.stringify(testCase),
+    // --- Snippets ---
+
+    listSnippetDescriptors(page: number, pageSize: number, snippetName?: string): Promise<PaginatedSnippets> {
+        const params = new URLSearchParams({
+            page: String(page),
+            pageSize: String(pageSize),
+        });
+        if (snippetName) {
+            params.append('name', snippetName);
+        }
+        return this.request<PaginatedSnippets>(`/api/v1/snippets?${params.toString()}`);
+    }
+    
+    createSnippet(createSnippet: CreateSnippet): Promise<Snippet> {
+        return this.request<Snippet>(`/api/v1/snippets/${createSnippet.id}?language=${createSnippet.language}`, {
+            method: 'PUT',
         });
     }
 
-    // TestingJobController: /api/v1/testing (POST)
-    postTestCase(testCase: Partial<TestCase>): Promise<TestCase> {
-        return this.request<TestCase>('/api/v1/testing', {
-            method: 'POST',
-            body: JSON.stringify(testCase),
-        });
-    }
-
-
-    // --- Implementaciones para los endpoints adicionales de SnippetRunnerController ---
-
-    // GET /api/v1/execution/{executionId}/status
-    getExecutionStatus(executionId: string): Promise<never> {
-        return this.request<never>(`/api/v1/execution/${executionId}/status`);
-    }
-
-    // POST /api/v1/execution/{executionId}/input
-    postExecutionInput(executionId: string, input: never): Promise<never> {
-        return this.request<never>(`/api/v1/execution/${executionId}/input`, {
-            method: 'POST',
-            body: JSON.stringify(input),
-        });
-    }
-
-    // DELETE /api/v1/execution/{executionId}
-    deleteExecution(executionId: string): Promise<void> {
-        return this.request<void>(`/api/v1/execution/${executionId}`, {
+    deleteSnippet(id: string): Promise<string> {
+        return this.request<string>(`/api/v1/snippets/${id}`, {
             method: 'DELETE',
+        });
+    }
+
+    shareSnippet(snippetId: string, userId: string): Promise<Snippet> {
+        return this.request<Snippet>(`/api/v1/snippets/${snippetId}/permission`, {
+            method: 'PUT',
+            body: JSON.stringify({ userId }),
         });
     }
 
@@ -100,10 +113,6 @@ export class ApiSnippetOperations implements SnippetOperations{
     }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     getUserFriends(_name?: string, _page?: number, _pageSize?: number): Promise<PaginatedUsers> {
-        throw new Error("Method not implemented.");
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    createSnippet(_createSnippet: CreateSnippet): Promise<Snippet> {
         throw new Error("Method not implemented.");
     }
     getTestCases(): Promise<TestCase[]> {
@@ -118,23 +127,35 @@ export class ApiSnippetOperations implements SnippetOperations{
         throw new Error("Method not implemented.");
     }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    deleteSnippet(_id: string): Promise<string> {
-        throw new Error("Method not implemented.");
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     getSnippetById(_id: string): Promise<Snippet | undefined> {
-        throw new Error("Method not implemented.");
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    shareSnippet(_snippetId: string, _userId: string): Promise<Snippet> {
         throw new Error("Method not implemented.");
     }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     updateSnippetById(_id: string, _updateSnippet: UpdateSnippet): Promise<Snippet> {
         throw new Error("Method not implemented.");
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    listSnippetDescriptors(_page: number, _pageSize: number, _sippetName?: string): Promise<PaginatedSnippets> {
+    
+    // --- Test & Execution ---
+    
+    testSnippet(testCase: Partial<TestCase>): Promise<TestCaseResult> {
+        // This should be adapted to the app's endpoint, which might proxy to the runner
+        throw new Error("Method not implemented.");
+    }
+
+    postTestCase(testCase: Partial<TestCase>): Promise<TestCase> {
+        // This should be adapted to the app's endpoint
+        throw new Error("Method not implemented.");
+    }
+
+    getExecutionStatus(executionId: string): Promise<never> {
+        throw new Error("Method not implemented.");
+    }
+
+    postExecutionInput(executionId: string, input: never): Promise<never> {
+        throw new Error("Method not implemented.");
+    }
+
+    deleteExecution(executionId: string): Promise<void> {
         throw new Error("Method not implemented.");
     }
 }
