@@ -1,5 +1,5 @@
 import React from 'react';
-import { runnerService } from '../../services/runnerService';
+import { runnerService } from '../services/runnerService';
 import { Button, Box, Typography } from '@mui/material';
 
 const RunnerTest: React.FC = () => {
