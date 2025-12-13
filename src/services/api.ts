@@ -43,7 +43,7 @@ export class ApiSnippetOperations implements SnippetOperations {
         const rulesMap = rules.reduce((acc, rule) => {
             acc[rule.name] = rule.value;
             return acc;
-        }, {} as Record<string, any>);
+        }, {} as Record<string, unknown>);
 
         return this.request<void>('/api/v1/rules', {
             method: 'PUT',
@@ -63,7 +63,7 @@ export class ApiSnippetOperations implements SnippetOperations {
         const rulesMap = rules.reduce((acc, rule) => {
             acc[rule.name] = rule.value;
             return acc;
-        }, {} as Record<string, any>);
+        }, {} as Record<string, unknown>);
 
         return this.request<void>('/api/v1/rules', {
             method: 'PUT',
@@ -111,51 +111,46 @@ export class ApiSnippetOperations implements SnippetOperations {
     getFileTypes(): Promise<FileType[]> {
         throw new Error("Method not implemented.");
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     getUserFriends(_name?: string, _page?: number, _pageSize?: number): Promise<PaginatedUsers> {
         throw new Error("Method not implemented.");
     }
     getTestCases(): Promise<TestCase[]> {
         throw new Error("Method not implemented.");
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     removeTestCase(_id: string): Promise<string> {
         throw new Error("Method not implemented.");
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     formatSnippet(_snippet: string): Promise<string> {
         throw new Error("Method not implemented.");
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     getSnippetById(_id: string): Promise<Snippet | undefined> {
         throw new Error("Method not implemented.");
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     updateSnippetById(_id: string, _updateSnippet: UpdateSnippet): Promise<Snippet> {
         throw new Error("Method not implemented.");
     }
     
     // --- Test & Execution ---
     
-    testSnippet(testCase: Partial<TestCase>): Promise<TestCaseResult> {
+    testSnippet(_testCase: Partial<TestCase>): Promise<TestCaseResult> {
         // This should be adapted to the app's endpoint, which might proxy to the runner
         throw new Error("Method not implemented.");
     }
 
-    postTestCase(testCase: Partial<TestCase>): Promise<TestCase> {
+    postTestCase(_testCase: Partial<TestCase>): Promise<TestCase> {
         // This should be adapted to the app's endpoint
         throw new Error("Method not implemented.");
     }
 
-    getExecutionStatus(executionId: string): Promise<never> {
+    getExecutionStatus(_executionId: string): Promise<never> {
         throw new Error("Method not implemented.");
     }
 
-    postExecutionInput(executionId: string, input: never): Promise<never> {
+    postExecutionInput(_executionId: string, _input: never): Promise<never> {
         throw new Error("Method not implemented.");
     }
 
-    deleteExecution(executionId: string): Promise<void> {
+    deleteExecution(_executionId: string): Promise<void> {
         throw new Error("Method not implemented.");
     }
 }
