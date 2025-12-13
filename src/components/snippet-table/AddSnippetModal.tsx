@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid';
 import {
     Box,
     Button,
@@ -38,6 +39,7 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
 
     const handleCreateSnippet = async () => {
         const newSnippet: CreateSnippet = {
+            id: uuidv4(),
             name: snippetName,
             content: code,
             language: language,

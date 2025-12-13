@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid';
 import {
   Box,
   Button,
@@ -56,6 +57,7 @@ export const SnippetTable = (props: SnippetTableProps) => {
     }
     file.text().then((text) => {
       setSnippet({
+        id: uuidv4(),
         name: splitName[0],
         content: text,
         language: fileType.language,

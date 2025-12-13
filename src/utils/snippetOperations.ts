@@ -16,9 +16,9 @@ export interface SnippetOperations {
 
     testSnippet(testCase: Partial<TestCase>): Promise<TestCaseResult>
 
-    modifyFormatRule(newRules: Rule[]): Promise<Rule[]>
+    modifyFormatRule(newRules: Rule[], language?: string): Promise<void>
 
-    modifyLintingRule(newRules: Rule[]): Promise<Rule[]>
+    modifyLintingRule(newRules: Rule[], language?: string): Promise<void>
 
     getExecutionStatus(executionId: string): Promise<never>
 

@@ -53,7 +53,7 @@ export const useGetFormatRules = () => {
 export const useModifyFormatRules = ({onSuccess}: {onSuccess: () => void}) => {
   const snippetOperations = useSnippetsOperations()
 
-  return useMutation<Rule[], Error, Rule[]>(
+  return useMutation<void, Error, Rule[]>(
       rule => snippetOperations.modifyFormatRule(rule),
       {onSuccess}
   );
@@ -68,7 +68,7 @@ export const useGetLintingRules = () => {
 export const useModifyLintingRules = ({onSuccess}: {onSuccess: () => void}) => {
   const snippetOperations = useSnippetsOperations()
 
-  return useMutation<Rule[], Error, Rule[]>(
+  return useMutation<void, Error, Rule[]>(
       rule => snippetOperations.modifyLintingRule(rule),
       {onSuccess}
   );

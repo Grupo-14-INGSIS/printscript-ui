@@ -180,14 +180,12 @@ export class FakeSnippetStore {
   }
 
   createSnippet(createSnippet: CreateSnippet): Snippet {
-    const id = uuid();
     const newSnippet = {
-      id,
       compliance: 'compliant' as ComplianceEnum,
       author: 'yo',
       ...createSnippet
     }
-    this.snippetMap.set(id, newSnippet)
+    this.snippetMap.set(createSnippet.id, newSnippet)
 
     return newSnippet
   }
