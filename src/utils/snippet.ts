@@ -9,6 +9,7 @@ export type ComplianceEnum =
 
 
 export type CreateSnippet = {
+  id: string;
   name: string;
   content: string;
   language: string;

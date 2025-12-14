@@ -115,29 +115,28 @@ export class FakeSnippetOperations implements SnippetOperations {
     })
   }
 
-  modifyFormatRule(newRules: Rule[]): Promise<Rule[]> {
+  modifyFormatRule(newRules: Rule[], _language?: string): Promise<void> {
     return new Promise(resolve => {
-      setTimeout(() => resolve(this.fakeStore.modifyFormattingRule(newRules)), DELAY)
+      this.fakeStore.modifyFormattingRule(newRules)
+      setTimeout(() => resolve(), DELAY)
     })
   }
 
-  modifyLintingRule(newRules: Rule[]): Promise<Rule[]> {
+  modifyLintingRule(newRules: Rule[], _language?: string): Promise<void> {
     return new Promise(resolve => {
-      setTimeout(() => resolve(this.fakeStore.modifyLintingRule(newRules)), DELAY)
+      this.fakeStore.modifyLintingRule(newRules)
+      setTimeout(() => resolve(), DELAY)
     })
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   getExecutionStatus(_executionId: string): Promise<never> {
     return Promise.resolve(undefined as never);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   postExecutionInput(_executionId: string, _input: never): Promise<never> {
     return Promise.resolve(undefined as never);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   deleteExecution(_executionId: string): Promise<void> {
     return Promise.resolve(undefined);
   }

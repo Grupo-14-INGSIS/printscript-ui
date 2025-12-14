@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid';
 import {
   Box,
   Button,
@@ -56,6 +57,7 @@ export const SnippetTable = (props: SnippetTableProps) => {
     }
     file.text().then((text) => {
       setSnippet({
+        id: uuidv4(),
         name: splitName[0],
         content: text,
         language: fileType.language,
@@ -96,7 +98,7 @@ export const SnippetTable = (props: SnippetTableProps) => {
         <Table size="medium" sx={{borderSpacing: "0 10px", borderCollapse: "separate"}}>
           <TableHead>
             <TableRow sx={{fontWeight: 'bold'}}>
-              <StyledTableCell sx={{fontWeight: "bold"}}>Name</StyledTableCell>
+              <StyledTableCell sx={{fontWeight: "bold"}}>NUEVO NAME</StyledTableCell>
               <StyledTableCell sx={{fontWeight: "bold"}}>Language</StyledTableCell>
               <StyledTableCell sx={{fontWeight: "bold"}}>Author</StyledTableCell>
               <StyledTableCell sx={{fontWeight: "bold"}}>Conformance</StyledTableCell>
