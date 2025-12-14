@@ -1,14 +1,6 @@
 import {useMutation, UseMutationResult, useQuery} from 'react-query';
 import {SnippetOperations} from "./snippetOperations.ts";
-import { ApiSnippetOperations } from "../services/api.ts";
-import { TestCase } from "../types/TestCase.ts";
-import { Rule } from "../types/Rule.ts";
-import {FileType} from "../types/FileType.ts";
-import {CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet} from "./snippet.ts";
-import {PaginatedUsers} from "./users.ts";
-// import {useAuth0} from "@auth0/auth0-react";
-// import {useEffect} from "react";
-
+import { FakeSnippetOperations } from "../utils/mock/fakeSnippetOperations.ts";
 
 export const useSnippetsOperations = () => {
   // const {getAccessTokenSilently} = useAuth0()
@@ -21,7 +13,7 @@ export const useSnippetsOperations = () => {
   //         .catch(error => console.error(error));
   // });
 
-  const snippetOperations: SnippetOperations = new ApiSnippetOperations(/* getAccessTokenSilently */); // Using the real API implementation
+  const snippetOperations: SnippetOperations = new FakeSnippetOperations(/* getAccessTokenSilently */); // Using the fake API implementation
 
   return snippetOperations
 }
