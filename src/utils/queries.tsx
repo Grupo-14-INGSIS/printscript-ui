@@ -1,6 +1,11 @@
 import {useMutation, UseMutationResult, useQuery} from 'react-query';
 import {SnippetOperations} from "./snippetOperations.ts";
 import { FakeSnippetOperations } from "../utils/mock/fakeSnippetOperations.ts";
+import {TestCase} from "../types/TestCase.ts";
+import {Rule} from "../types/Rule.ts";
+import {FileType} from "../types/FileType.ts";
+import {CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet} from "./snippet.ts";
+import {PaginatedUsers} from "./users.ts";
 
 export const useSnippetsOperations = () => {
   // const {getAccessTokenSilently} = useAuth0()
