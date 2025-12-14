@@ -2,7 +2,7 @@ import {AppBar, Box, Button, Container, Toolbar, Typography, Avatar} from "@mui/
 import {Code, Rule, Login, Logout} from "@mui/icons-material";
 import {ReactNode} from "react";
 import {useLocation, useNavigate} from "react-router-dom";
-import {useAuth} from "../../contexts/authContext";
+import {useAuth0} from "@auth0/auth0-react";
 
 type PageType = {
     title: string;
@@ -23,11 +23,14 @@ const pages: PageType[] = [{
 export const Navbar = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { user, isAuthenticated, logout } = useAuth();
+    const { user, isAuthenticated, logout, loginWithRedirect } = useAuth0();
 
     const handleLogout = () => {
-        logout();
-        navigate('/login');
+        logout({
+            logoutParams: {
+                returnTo: window.location.origin
+            }
+        });
     };
 
     return (
@@ -46,7 +49,6 @@ export const Navbar = () => {
                         }}
                     >
                         Printscript
-                        yes
                     </Typography>
                     <Box sx={{flexGrow: 1, display: {xs: 'none', md: 'flex'}, gap: '4px'}}>
                         {isAuthenticated && pages.map((page) => (
@@ -76,7 +78,7 @@ export const Navbar = () => {
                         {!isAuthenticated ? (
                             <Button
                                 startIcon={<Login />}
-                                onClick={() => navigate('/login')}
+                                onClick={() => loginWithRedirect()}
                                 sx={{
                                     color: 'white',
                                     borderColor: 'white',
