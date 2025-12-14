@@ -1,6 +1,6 @@
 import {useMutation, UseMutationResult, useQuery} from 'react-query';
 import {SnippetOperations} from "./snippetOperations.ts";
-import { FakeSnippetOperations } from "../utils/mock/fakeSnippetOperations.ts";
+import { ApiSnippetOperations } from "../services/api.ts";
 import {TestCase} from "../types/TestCase.ts";
 import {Rule} from "../types/Rule.ts";
 import {FileType} from "../types/FileType.ts";
@@ -18,7 +18,7 @@ export const useSnippetsOperations = () => {
   //         .catch(error => console.error(error));
   // });
 
-  const snippetOperations: SnippetOperations = new FakeSnippetOperations(/* getAccessTokenSilently */); // Using the fake API implementation
+  const snippetOperations: SnippetOperations = new ApiSnippetOperations(/* getAccessTokenSilently */); // Using the real API implementation
 
   return snippetOperations
 }
