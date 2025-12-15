@@ -52,9 +52,13 @@ export class ApiSnippetOperations implements SnippetOperations {
 
     modifyFormatRule(rules: Rule[], language = "printscript"): Promise<void> {
         const rulesMap = rules.reduce((acc, rule) => {
-            acc[rule.name] = rule.value;
+            if (rule.value === undefined || typeof rule.value === 'boolean') {
+                acc[rule.name] = rule.isActive;
+            } else {
+                acc[rule.name] = rule.value;
+            }
             return acc;
-        }, {} as Record<string, unknown>);
+        }, {} as Record<string, any>);
 
         return this.request<void>('/api/v1/rules', {
             method: 'PUT',
@@ -78,9 +82,13 @@ export class ApiSnippetOperations implements SnippetOperations {
 
     modifyLintingRule(rules: Rule[], language = "printscript"): Promise<void> {
         const rulesMap = rules.reduce((acc, rule) => {
-            acc[rule.name] = rule.value;
+            if (rule.value === undefined || typeof rule.value === 'boolean') {
+                acc[rule.name] = rule.isActive;
+            } else {
+                acc[rule.name] = rule.value;
+            }
             return acc;
-        }, {} as Record<string, unknown>);
+        }, {} as Record<string, any>);
 
         return this.request<void>('/api/v1/rules', {
             method: 'PUT',
