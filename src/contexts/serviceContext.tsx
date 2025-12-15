@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useMemo, useCallback } from 'react';
 import { useAuth0, GetTokenSilentlyOptions } from '@auth0/auth0-react';
-import { ApiSnippetOperations } from './services/api';
-import { RunnerService } from './services/runnerService';
+import { ApiSnippetOperations } from '../services/api';
+import { RunnerService } from '../services/runnerService';
 
 interface ServiceContextType {
     apiService: ApiSnippetOperations;
