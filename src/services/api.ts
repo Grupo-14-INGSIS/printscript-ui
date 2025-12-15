@@ -58,7 +58,7 @@ export class ApiSnippetOperations implements SnippetOperations {
                 acc[rule.name] = rule.value;
             }
             return acc;
-        }, {} as Record<string, any>);
+        }, {} as Record<string, string | number | boolean | null | undefined>);
 
         return this.request<void>('/api/v1/rules', {
             method: 'PUT',
@@ -88,7 +88,7 @@ export class ApiSnippetOperations implements SnippetOperations {
                 acc[rule.name] = rule.value;
             }
             return acc;
-        }, {} as Record<string, any>);
+        }, {} as Record<string, string | number | boolean | null | undefined>);
 
         return this.request<void>('/api/v1/rules', {
             method: 'PUT',
