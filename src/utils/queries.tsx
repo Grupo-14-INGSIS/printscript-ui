@@ -77,11 +77,11 @@ export const useGetFileTypes = () => {
     return useQuery<FileType[], Error>('fileTypes', () => apiService.getFileTypes());
 }
 
-export const useCreateSnippet = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<Snippet, Error, CreateSnippet> => {
+export const useCreateSnippet = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<void, Error, CreateSnippet> => {
     const { runnerService } = useServices();
     const { user } = useAuth0();
 
-    return useMutation<any, Error, CreateSnippet>(
+    return useMutation<void, Error, CreateSnippet>(
         (snippet) => {
             if (!user?.sub) throw new Error("User not authenticated");
             return runnerService.createSnippet(snippet, user.sub);

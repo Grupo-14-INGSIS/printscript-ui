@@ -67,7 +67,7 @@ export class RunnerService {
         return response.text();
     }
 
-    createSnippet(snippet: CreateSnippet, userId: string): Promise<any> {
+    createSnippet(snippet: CreateSnippet, userId: string): Promise<void> {
         const { id, name, language, content } = snippet;
         const body = {
             userId: userId,
@@ -75,7 +75,7 @@ export class RunnerService {
             language: language,
             snippet: content, // In the Runner DTO, the content is called 'snippet'
         };
-        return this.request(`/api/v1/snippet/snippets/${id}`, {
+        return this.request<void>(`/api/v1/snippet/snippets/${id}`, {
             method: 'PUT',
             body: JSON.stringify(body)
         });

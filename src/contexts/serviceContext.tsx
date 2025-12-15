@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useMemo, useCallback } from 'react';
 import { useAuth0, GetTokenSilentlyOptions } from '@auth0/auth0-react';
 import { ApiSnippetOperations } from './services/api';
 import { RunnerService } from './services/runnerService';
@@ -22,7 +22,7 @@ export const ServiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const { getAccessTokenSilently } = useAuth0();
 
     // We need to bind the 'this' context to the getAccessTokenSilently function
-    const getAccessToken = (options?: GetTokenSilentlyOptions) => getAccessTokenSilently(options);
+    const getAccessToken = useCallback((options?: GetTokenSilentlyOptions) => getAccessTokenSilently(options), [getAccessTokenSilently]);
 
     const services = useMemo(() => {
         return {
