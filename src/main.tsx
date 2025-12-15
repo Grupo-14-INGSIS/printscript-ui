@@ -34,7 +34,7 @@ createRoot(document.getElementById('root')!).render(
             authorizationParams={{
                 redirect_uri: window.location.origin,
                 audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-                scope: "openid profile email"
+                scope: "openid profile email read:snippets write:snippets delete:snippets"
             }}
         >
             <AuthWrapper>
