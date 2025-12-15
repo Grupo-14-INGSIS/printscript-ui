@@ -41,7 +41,7 @@ export class ApiSnippetOperations implements SnippetOperations {
     // --- Rules ---
 
     async getFormatRules(language = "printscript"): Promise<Rule[]> {
-        const rulesMap = await this.request<Record<string, unknown>>(`/api/v1/rules?task=formatting&language=${language}`);
+        const rulesMap = await this.request<Record<string, string | number | boolean | null>>(`/api/v1/rules?task=formatting&language=${language}`);
         return Object.entries(rulesMap).map(([key, value]) => ({
             id: key,
             name: key,
@@ -67,7 +67,7 @@ export class ApiSnippetOperations implements SnippetOperations {
     }
 
     async getLintingRules(language = "printscript"): Promise<Rule[]> {
-        const rulesMap = await this.request<Record<string, unknown>>(`/api/v1/rules?task=linting&language=${language}`);
+        const rulesMap = await this.request<Record<string, string | number | boolean | null>>(`/api/v1/rules?task=linting&language=${language}`);
         return Object.entries(rulesMap).map(([key, value]) => ({
             id: key,
             name: key,
