@@ -6,12 +6,6 @@ permissions:
 
 on:
   push:
-    branches:
-      - develop
-  pull_request:
-    branches:
-      - develop
-  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -61,11 +55,10 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ghcr.io/grupo-14-ingsis/printscript-ui:develop
+        run: |
+          branch=${GITHUB_REF_NAME}
+          docker build -t ghcr.io/grupo-14-ingsis/printscript-ui:$branch .
+          docker push ghcr.io/grupo-14-ingsis/printscript-ui:$branch
 
   dispatch-to-infrastructure:
     needs: build
@@ -73,6 +66,7 @@ jobs:
     steps:
       - name: Notify infrastructure of new image
         run: |
+          branch=${GITHUB_REF_NAME}
           curl -L \
             -X POST \
             -H "Accept: application/vnd.github+json" \
@@ -82,7 +76,7 @@ jobs:
             -d '{
               "event_type": "new-image-ready",
               "client_payload": {
-                "environment": "develop",
+                "environment": "$branch",
                 "service": "snippetsearcher-ui"
               }
             }'

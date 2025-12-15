@@ -1,5 +1,5 @@
 import {AppBar, Box, Button, Container, Toolbar, Typography, Avatar} from "@mui/material";
-import {Code, Rule, Login, Logout} from "@mui/icons-material";
+import {Code, Rule, Login, Logout, BugReport} from "@mui/icons-material";
 import {ReactNode} from "react";
 import {useLocation, useNavigate} from "react-router-dom";
 import {useAuth0} from "@auth0/auth0-react";
@@ -23,7 +23,7 @@ const pages: PageType[] = [{
 export const Navbar = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { user, isAuthenticated, logout, loginWithRedirect } = useAuth0();
+    const { user, isAuthenticated, logout, loginWithRedirect, getAccessTokenSilently } = useAuth0();
 
     const handleLogout = () => {
         logout({
@@ -31,6 +31,22 @@ export const Navbar = () => {
                 returnTo: window.location.origin
             }
         });
+    };
+
+    const handleShowToken = async () => {
+        try {
+            const token = await getAccessTokenSilently({
+                authorizationParams: {
+                    audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+                    scope: "openid profile email read:snippets write:snippets delete:snippets",
+                }
+            });
+            console.log("Access Token:", token);
+            alert("El token de acceso se ha impreso en la consola de desarrollador (F12).");
+        } catch (e) {
+            console.error(e);
+            alert("No se pudo obtener el token. Revisa la consola para ver el error.");
+        }
     };
 
     return (
@@ -71,6 +87,11 @@ export const Navbar = () => {
                                 <Typography>{page.title}</Typography>
                             </Button>
                         ))}
+                        {isAuthenticated && (
+                            <Button onClick={handleShowToken} sx={{my: 2, color: 'white'}} startIcon={<BugReport/>}>
+                                Show Token
+                            </Button>
+                        )}
                     </Box>
 
                     {/* Sección de autenticación */}

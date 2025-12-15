@@ -4,16 +4,21 @@ import { SnippetOperations } from "../utils/snippetOperations.ts";
 import { CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet } from "../utils/snippet.ts";
 import { PaginatedUsers } from "../utils/users.ts";
 import { FileType } from "../types/FileType.ts";
-import { authService } from "./authService.ts";
+import { GetTokenSilentlyOptions } from "@auth0/auth0-react";
 import { TestCase } from "../types/TestCase.ts";
 import { TestCaseResult } from "../utils/queries.tsx";
 
-
 export class ApiSnippetOperations implements SnippetOperations {
+
+    constructor(private getAccessToken: (options?: GetTokenSilentlyOptions) => Promise<string>) {}
 
     private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
         const url = `${BACKEND_URL}${endpoint}`;
-        const token = authService.getAccessToken();
+        const token = await this.getAccessToken({
+            authorizationParams: {
+                audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+            }
+        });
 
         const headers: HeadersInit = {
             'Content-Type': 'application/json',
@@ -35,15 +40,25 @@ export class ApiSnippetOperations implements SnippetOperations {
 
     // --- Rules ---
 
-    getFormatRules(language = "printscript"): Promise<Rule[]> {
-        return this.request<Rule[]>(`/api/v1/rules?task=formatting&language=${language}`);
+    async getFormatRules(language = "printscript"): Promise<Rule[]> {
+        const rulesMap = await this.request<Record<string, string | number | boolean | null>>(`/api/v1/rules?task=formatting&language=${language}`);
+        return Object.entries(rulesMap).map(([key, value]) => ({
+            id: key,
+            name: key,
+            isActive: typeof value === 'boolean' ? value : true,
+            value: typeof value === 'boolean' ? undefined : value,
+        }));
     }
 
     modifyFormatRule(rules: Rule[], language = "printscript"): Promise<void> {
         const rulesMap = rules.reduce((acc, rule) => {
-            acc[rule.name] = rule.value;
+            if (rule.value === undefined || typeof rule.value === 'boolean') {
+                acc[rule.name] = rule.isActive;
+            } else {
+                acc[rule.name] = rule.value;
+            }
             return acc;
-        }, {} as Record<string, unknown>);
+        }, {} as Record<string, string | number | boolean | null | undefined>);
 
         return this.request<void>('/api/v1/rules', {
             method: 'PUT',
@@ -55,15 +70,25 @@ export class ApiSnippetOperations implements SnippetOperations {
         });
     }
 
-    getLintingRules(language = "printscript"): Promise<Rule[]> {
-        return this.request<Rule[]>(`/api/v1/rules?task=linting&language=${language}`);
+    async getLintingRules(language = "printscript"): Promise<Rule[]> {
+        const rulesMap = await this.request<Record<string, string | number | boolean | null>>(`/api/v1/rules?task=linting&language=${language}`);
+        return Object.entries(rulesMap).map(([key, value]) => ({
+            id: key,
+            name: key,
+            isActive: typeof value === 'boolean' ? value : true,
+            value: typeof value === 'boolean' ? undefined : value,
+        }));
     }
 
     modifyLintingRule(rules: Rule[], language = "printscript"): Promise<void> {
         const rulesMap = rules.reduce((acc, rule) => {
-            acc[rule.name] = rule.value;
+            if (rule.value === undefined || typeof rule.value === 'boolean') {
+                acc[rule.name] = rule.isActive;
+            } else {
+                acc[rule.name] = rule.value;
+            }
             return acc;
-        }, {} as Record<string, unknown>);
+        }, {} as Record<string, string | number | boolean | null | undefined>);
 
         return this.request<void>('/api/v1/rules', {
             method: 'PUT',

@@ -11,7 +11,7 @@ class RunnerService {
 
         const headers: HeadersInit = {
             'Content-Type': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` }),
+            ...(token && {'Authorization': `Bearer ${token}`}),
         };
 
         const config: RequestInit = {
@@ -50,6 +50,14 @@ class RunnerService {
             body: JSON.stringify(data),
         });
     }
+
+
+    async registerUser(userId: string): Promise<void> {
+        return this.request<void>(`/api/v1/users/${userId}`, {
+            method: 'PUT',
+        });
+    }
 }
+
 
 export const runnerService = new RunnerService();
