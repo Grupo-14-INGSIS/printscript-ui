@@ -7,20 +7,13 @@ import {FileType} from "../types/FileType.ts";
 import {CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet} from "./snippet.ts";
 import {PaginatedUsers} from "./users.ts";
 
+import {useAuth0} from "@auth0/auth0-react";
+import {useMemo} from "react";
+
 export const useSnippetsOperations = () => {
-  // const {getAccessTokenSilently} = useAuth0()
-  //
-  // useEffect(() => {
-  //     getAccessTokenSilently()
-  //         .then(token => {
-  //             console.log(token)
-  //         })
-  //         .catch(error => console.error(error));
-  // });
+  const {getAccessTokenSilently} = useAuth0()
 
-  const snippetOperations: SnippetOperations = new ApiSnippetOperations(/* getAccessTokenSilently */); // Using the real API implementation
-
-  return snippetOperations
+  return useMemo(() => new ApiSnippetOperations(getAccessTokenSilently), [getAccessTokenSilently]);
 }
 
 export const usePostTestCase = () => {

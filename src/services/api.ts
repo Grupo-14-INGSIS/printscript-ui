@@ -4,16 +4,19 @@ import { SnippetOperations } from "../utils/snippetOperations.ts";
 import { CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet } from "../utils/snippet.ts";
 import { PaginatedUsers } from "../utils/users.ts";
 import { FileType } from "../types/FileType.ts";
-import { authService } from "./authService.ts";
-import { TestCase } from "../types/TestCase.ts";
-import { TestCaseResult } from "../utils/queries.tsx";
-
+import { GetTokenSilentlyOptions } from "@auth0/auth0-react";
 
 export class ApiSnippetOperations implements SnippetOperations {
 
+    constructor(private getAccessToken: (options?: GetTokenSilentlyOptions) => Promise<string>) {}
+
     private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
         const url = `${BACKEND_URL}${endpoint}`;
-        const token = authService.getAccessToken();
+        const token = await this.getAccessToken({
+            authorizationParams: {
+                audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+            }
+        });
 
         const headers: HeadersInit = {
             'Content-Type': 'application/json',
