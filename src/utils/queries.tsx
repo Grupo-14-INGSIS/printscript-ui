@@ -1,5 +1,5 @@
 import {useMutation, UseMutationResult, useQuery} from 'react-query';
-import {SnippetOperations} from "./snippetOperations.ts";
+
 import { ApiSnippetOperations } from "../services/api.ts";
 import {TestCase} from "../types/TestCase.ts";
 import {Rule} from "../types/Rule.ts";
