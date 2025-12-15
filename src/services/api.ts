@@ -40,8 +40,14 @@ export class ApiSnippetOperations implements SnippetOperations {
 
     // --- Rules ---
 
-    getFormatRules(language = "printscript"): Promise<Rule[]> {
-        return this.request<Rule[]>(`/api/v1/rules?task=formatting&language=${language}`);
+    async getFormatRules(language = "printscript"): Promise<Rule[]> {
+        const rulesMap = await this.request<Record<string, unknown>>(`/api/v1/rules?task=formatting&language=${language}`);
+        return Object.entries(rulesMap).map(([key, value]) => ({
+            id: key,
+            name: key,
+            isActive: typeof value === 'boolean' ? value : true,
+            value: typeof value === 'boolean' ? undefined : value,
+        }));
     }
 
     modifyFormatRule(rules: Rule[], language = "printscript"): Promise<void> {
@@ -60,8 +66,14 @@ export class ApiSnippetOperations implements SnippetOperations {
         });
     }
 
-    getLintingRules(language = "printscript"): Promise<Rule[]> {
-        return this.request<Rule[]>(`/api/v1/rules?task=linting&language=${language}`);
+    async getLintingRules(language = "printscript"): Promise<Rule[]> {
+        const rulesMap = await this.request<Record<string, unknown>>(`/api/v1/rules?task=linting&language=${language}`);
+        return Object.entries(rulesMap).map(([key, value]) => ({
+            id: key,
+            name: key,
+            isActive: typeof value === 'boolean' ? value : true,
+            value: typeof value === 'boolean' ? undefined : value,
+        }));
     }
 
     modifyLintingRule(rules: Rule[], language = "printscript"): Promise<void> {
