@@ -102,7 +102,7 @@ export class ApiSnippetOperations implements SnippetOperations {
     
     // --- Snippets ---
 
-    listSnippetDescriptors(page: number, pageSize: number, snippetName?: string): Promise<PaginatedSnippets> {
+    async listSnippetDescriptors(page: number, pageSize: number, snippetName?: string): Promise<PaginatedSnippets> {
         const params = new URLSearchParams({
             page: String(page),
             pageSize: String(pageSize),
@@ -110,7 +110,25 @@ export class ApiSnippetOperations implements SnippetOperations {
         if (snippetName) {
             params.append('name', snippetName);
         }
-        return this.request<PaginatedSnippets>(`/api/v1/snippets?${params.toString()}`);
+        
+        const snippetsMap = await this.request<Record<string, { name: string; language: string; permission: string }>>(`/api/v1/snippets?${params.toString()}`);
+
+        const snippetsArray: Snippet[] = Object.entries(snippetsMap).map(([id, details]) => ({
+            id: id,
+            name: details.name,
+            language: details.language,
+            author: details.permission, // Using role as author for now
+            content: '', // This endpoint does not provide content
+            extension: '', // This endpoint does not provide extension
+            compliance: 'pending', // Default value
+        }));
+
+        return {
+            page: 1, // The API doesn't return pagination data, so mocking it.
+            page_size: snippetsArray.length,
+            count: snippetsArray.length,
+            snippets: snippetsArray,
+        };
     }
     
     createSnippet(createSnippet: CreateSnippet): Promise<Snippet> {

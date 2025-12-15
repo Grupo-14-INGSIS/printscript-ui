@@ -30,6 +30,35 @@ class RunnerService {
         return text ? JSON.parse(text) : ({} as T);
     }
 
+    private async requestText(endpoint: string, options?: RequestInit): Promise<string> {
+        const url = `${this.baseUrl}${endpoint}`;
+        const token = authService.getAccessToken();
+
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json', // Even for text response, keep this for consistency unless problematic
+            ...(token && {'Authorization': `Bearer ${token}`}),
+        };
+
+        const config: RequestInit = {
+            ...options,
+            headers,
+        };
+
+        const response = await fetch(url, config);
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
+        }
+
+        return response.text();
+    }
+
+    async getSnippetContent(snippetId: string): Promise<string> {
+        // Assuming "snippets" is the default container
+        return this.requestText(`/api/v1/snippet/snippets/${snippetId}`);
+    }
+
     async startSnippetExecution(snippetId: string, data: ExecutionRequest): Promise<ExecutionResponse> {
         return this.request<ExecutionResponse>(`/api/v1/snippets/${snippetId}/execution`, {
             method: 'POST',
