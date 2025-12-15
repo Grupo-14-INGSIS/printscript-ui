@@ -5,6 +5,8 @@ import { CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet } from "../uti
 import { PaginatedUsers } from "../utils/users.ts";
 import { FileType } from "../types/FileType.ts";
 import { GetTokenSilentlyOptions } from "@auth0/auth0-react";
+import { TestCase } from "../types/TestCase.ts";
+import { TestCaseResult } from "../utils/queries.tsx";
 
 export class ApiSnippetOperations implements SnippetOperations {
 
