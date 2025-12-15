@@ -67,7 +67,7 @@ export class RunnerService {
         return response.text();
     }
 
-    createSnippet(snippet: CreateSnippet, userId: string): Promise<void> {
+    async createSnippet(snippet: CreateSnippet, userId: string): Promise<void> {
         const { id, name, language, content } = snippet;
         const body = {
             userId: userId,
@@ -75,7 +75,8 @@ export class RunnerService {
             language: language,
             snippet: content, // In the Runner DTO, the content is called 'snippet'
         };
-        return this.request<void>(`/api/v1/snippet/snippets/${id}`, {
+        // Use requestText and ignore the resulting string, fulfilling the Promise<void> signature
+        await this.requestText(`/api/v1/snippet/snippets/${id}`, {
             method: 'PUT',
             body: JSON.stringify(body)
         });
