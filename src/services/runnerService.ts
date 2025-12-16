@@ -38,7 +38,36 @@ export class RunnerService {
         return text ? JSON.parse(text) : ({} as T);
     }
 
-    createSnippet(snippet: CreateSnippet, userId: string): Promise<void> {
+    private async requestText(endpoint: string, options?: RequestInit): Promise<string> {
+        const url = `${this.baseUrl}${endpoint}`;
+        const token = await this.getAccessToken({
+            authorizationParams: {
+                audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+                scope: "read:snippets write:snippets delete:snippets",
+            }
+        });
+
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+            ...(token && {'Authorization': `Bearer ${token}`}),
+        };
+
+        const config: RequestInit = {
+            ...options,
+            headers,
+        };
+
+        const response = await fetch(url, config);
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
+        }
+
+        return response.text();
+    }
+
+    async createSnippet(snippet: CreateSnippet, userId: string): Promise<void> {
         const { id, name, language, content } = snippet;
         const body = {
             userId: userId,
@@ -46,8 +75,7 @@ export class RunnerService {
             language: language,
             snippet: content, // In the Runner DTO, the content is called 'snippet'
         };
-        // Use requestText and ignore the resulting string, fulfilling the Promise<void> signature
-        return this.request<void>(`/api/v1/snippet/snippets/${id}`, {
+        await this.requestText(`/api/v1/snippet/snippets/${id}`, {
             method: 'PUT',
             body: JSON.stringify(body)
         });
@@ -86,8 +114,8 @@ export class RunnerService {
         });
     }
 
-    updateSnippetContent(id: string, content: string): Promise<void> {
-        return this.request<void>(`/api/v1/snippet/snippets/${id}`, {
+    async updateSnippetContent(id: string, content: string): Promise<void> {
+        await this.requestText(`/api/v1/snippet/snippets/${id}`, {
             method: 'PATCH',
             body: JSON.stringify({ snippet: content })
         });
