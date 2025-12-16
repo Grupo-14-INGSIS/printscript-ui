@@ -1,5 +1,5 @@
 import { RUNNER_URL } from "../utils/constants";
-import { CancelExecutionRequest, ExecutionRequest, ExecutionResponse, InputRequest } from "../types/runner";
+import { CancelExecutionRequest, ExecutionRequest, ExecutionResponse, GetSnippetResponse, InputRequest } from "../types/runner";
 import { GetTokenSilentlyOptions } from "@auth0/auth0-react";
 import { CreateSnippet } from "../utils/snippet.ts";
 
