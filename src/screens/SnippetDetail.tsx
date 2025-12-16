@@ -73,9 +73,6 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
     }
   }, [formatSnippetData])
 
-
-  console.log("Snippet object in SnippetDetail:", snippet);
-
   return (
       <Box p={4} minWidth={'60vw'}>
         <Box width={'100%'} p={2} display={'flex'} justifyContent={'flex-end'}>
@@ -146,7 +143,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
         <ShareSnippetModal open={shareModalOppened}
                            onClose={() => setShareModalOppened(false)}/>
         <TestSnippetModal open={testModalOpened} onClose={() => setTestModalOpened(false)}/>
-        <DeleteConfirmationModal open={deleteConfirmationModalOpen} onClose={() => setDeleteConfirmationModalOpen(false)} id={snippet?.id ?? ""} setCloseDetails={handleCloseModal} />
+        <DeleteConfirmationModal open={deleteConfirmationModalOpen} onClose={() => setDeleteConfirmationModalOpen(false)} id={id} setCloseDetails={handleCloseModal} />
       </Box>
   );
 }
