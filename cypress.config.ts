@@ -8,7 +8,8 @@ export default defineConfig({
         setupNodeEvents(on, config) {
             config.env = {
                 ...config.env,
-                VITE_FRONTEND_URL: process.env.VITE_FRONTEND_URL,
+                // FORCE VITE_FRONTEND_URL to localhost for local testing
+                VITE_FRONTEND_URL: "http://localhost:5173",
                 VITE_BACKEND_URL: process.env.VITE_BACKEND_URL,
                 VITE_RUNNER_URL: process.env.VITE_RUNNER_URL,
                 VITE_AUTH0_USERNAME: process.env.VITE_AUTH0_USERNAME,
@@ -31,7 +32,8 @@ export default defineConfig({
                     'import.meta.env.VITE_AUTH0_CLIENT_ID': JSON.stringify(process.env.VITE_AUTH0_CLIENT_ID),
                     'import.meta.env.VITE_AUTH0_AUDIENCE': JSON.stringify(process.env.VITE_AUTH0_AUDIENCE),
                     'import.meta.env.VITE_AUTH0_REALM': JSON.stringify(process.env.VITE_AUTH0_REALM),
-                    'import.meta.env.VITE_FRONTEND_URL': JSON.stringify(process.env.VITE_FRONTEND_URL),
+                    // FORCE VITE_FRONTEND_URL to localhost for local testing in Vite's define
+                    'import.meta.env.VITE_FRONTEND_URL': JSON.stringify("http://localhost:5173"),
                     'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL),
                     'import.meta.env.VITE_BACKEND_URL': JSON.stringify(process.env.VITE_BACKEND_URL),
                     'import.meta.env.VITE_RUNNER_URL': JSON.stringify(process.env.VITE_RUNNER_URL),
@@ -41,6 +43,6 @@ export default defineConfig({
             }
         },
         experimentalStudio: true,
-        baseUrl: process.env.VITE_FRONTEND_URL || "http://localhost:5173",
+        baseUrl: "http://localhost:5173",
     },
 });
