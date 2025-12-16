@@ -27,7 +27,7 @@ export class FakeSnippetOperations implements SnippetOperations {
       return new Promise(resolve => {
           const snippet = this.fakeStore.getSnippetById(id);
           if (snippet) {
-              resolve({id: snippet.id, name: snippet.name, language: snippet.language});
+              resolve({snippetId: snippet.id, name: snippet.name, language: snippet.language});
           } else {
               throw new Error("Snippet not found");
           }
