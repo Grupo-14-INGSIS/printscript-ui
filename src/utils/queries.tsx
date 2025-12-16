@@ -1,4 +1,4 @@
-import {useMutation, UseMutationResult, useQuery} from 'react-query';
+import {useMutation, UseMutationResult, useQuery, useQueryClient} from 'react-query';
 import {TestCase} from "../types/TestCase.ts";
 import {Rule} from "../types/Rule.ts";
 import {FileType} from "../types/FileType.ts";
@@ -79,13 +79,19 @@ export const useGetFileTypes = () => {
 export const useCreateSnippet = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<void, Error, CreateSnippet> => {
     const { runnerService } = useServices();
     const { user } = useAuth0();
+    const queryClient = useQueryClient();
 
     return useMutation<void, Error, CreateSnippet>(
         (snippet) => {
             if (!user?.sub) throw new Error("User not authenticated");
             return runnerService.createSnippet(snippet, user.sub);
         },
-        {onSuccess}
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries(['listSnippets']);
+                onSuccess();
+            }
+        }
     );
 };
 
