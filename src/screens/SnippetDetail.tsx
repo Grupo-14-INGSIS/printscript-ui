@@ -7,18 +7,19 @@ import "prismjs/themes/prism-okaidia.css";
 import {Alert, Box, CircularProgress, IconButton, Tooltip, Typography} from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import {
-  useUpdateSnippetContent
+  useUpdateSnippetContent, useStartExecution, useCancelExecution, useGetExecutionStatus
 } from "../utils/queries.tsx";
 import {useFormatSnippet, useGetSnippetById} from "../utils/queries.tsx";
 import {Bòx} from "../components/snippet-table/SnippetBox.tsx";
-import {BugReport, Delete, Download, Save, Share} from "@mui/icons-material";
+import {BugReport, Delete, Download, Save, Share, PlayArrow, StopRounded} from "@mui/icons-material";
 import {ShareSnippetModal} from "../components/snippet-detail/ShareSnippetModal.tsx";
 import {TestSnippetModal} from "../components/snippet-test/TestSnippetModal.tsx";
 import {Snippet} from "../utils/snippet.ts";
 import {SnippetExecution} from "./SnippetExecution.tsx";
 import ReadMoreIcon from '@mui/icons-material/ReadMore';
 import {queryClient} from "../App.tsx";
-import {DeleteConfirmationModal} from "../components/snippet-detail/DeleteConfirmationModal.tsx";
+import { DeleteConfirmationModal } from "../components/snippet-detail/DeleteConfirmationModal.tsx";
+
 
 type SnippetDetailProps = {
   id: string;
@@ -56,10 +57,28 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   const [shareModalOppened, setShareModalOppened] = useState(false)
   const [deleteConfirmationModalOpen, setDeleteConfirmationModalOpen] = useState(false)
   const [testModalOpened, setTestModalOpened] = useState(false);
+  const [runSnippet, setRunSnippet] = useState(false);
+  const [executionId, setExecutionId] = useState<string | null>(null);
+
 
   const {data: snippet, isLoading} = useGetSnippetById(id);
   const {mutate: formatSnippet, isLoading: isFormatLoading, data: formatSnippetData} = useFormatSnippet()
   const {mutate: updateSnippetContent, isLoading: isUpdateSnippetLoading} = useUpdateSnippetContent({onSuccess: () => queryClient.invalidateQueries(['snippet', id])})
+  const {mutateAsync: startExecution, isLoading: isStartingExecution} = useStartExecution({
+    onSuccess: () => {
+        // TODO: Backend does not return executionId, using snippetId as a workaround for now.
+        setExecutionId(id); 
+        setRunSnippet(true);
+    }
+  });
+  const {mutateAsync: cancelExecution, isLoading: isCancellingExecution} = useCancelExecution({
+    onSuccess: () => {
+        setExecutionId(null);
+        setRunSnippet(false);
+    }
+  });
+
+  const {data: executionStatus} = useGetExecutionStatus(id, executionId || '');
 
   useEffect(() => {
     if (snippet) {
@@ -72,6 +91,20 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
       setCode(formatSnippetData)
     }
   }, [formatSnippetData])
+
+  const handleRunToggle = async () => {
+    if (runSnippet && executionId) { // If running, cancel
+        await cancelExecution(id); // Using snippetId for cancel, assuming it's required
+    } else { // If not running, start
+        if (snippet) {
+            await startExecution({
+                snippetId: id,
+                environment: {}, // Default empty environment
+                version: "1.1", // Default version
+            });
+        }
+    }
+  };
 
   return (
       <Box p={4} minWidth={'60vw'}>
@@ -96,11 +129,11 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                 </IconButton>
               </Tooltip>
               <DownloadButton snippet={snippet}/>
-              {/*<Tooltip title={runSnippet ? "Stop run" : "Run"}>*/}
-              {/*  <IconButton onClick={() => setRunSnippet(!runSnippet)}>*/}
-              {/*    {runSnippet ? <StopRounded/> : <PlayArrow/>}*/}
-              {/*  </IconButton>*/}
-              {/*</Tooltip>*/}
+              <Tooltip title={runSnippet ? "Stop run" : "Run"}>
+                <IconButton onClick={handleRunToggle} disabled={isStartingExecution || isCancellingExecution || !snippet}>
+                  {runSnippet ? <StopRounded/> : <PlayArrow/>}
+                </IconButton>
+              </Tooltip>
               {/* TODO: we can implement a live mode*/}
               <Tooltip title={"Format"}>
                 <IconButton onClick={() => formatSnippet(code)} disabled={isFormatLoading}>
@@ -136,7 +169,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
             </Box>
             <Box pt={1} flex={1} marginTop={2}>
               <Alert severity="info">Output</Alert>
-              <SnippetExecution />
+              <SnippetExecution snippetId={id} executionId={executionId} executionStatus={executionStatus} />
             </Box>
           </>
         }
@@ -147,4 +180,5 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
       </Box>
   );
 }
+
 

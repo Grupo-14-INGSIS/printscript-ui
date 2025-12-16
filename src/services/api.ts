@@ -4,8 +4,7 @@ import { SnippetOperations } from "../utils/snippetOperations.ts";
 import { CreateSnippet, PaginatedSnippets, Snippet, SnippetData, UpdateSnippet } from "../utils/snippet.ts";
 import { FileType } from "../types/FileType.ts";
 import { GetTokenSilentlyOptions } from "@auth0/auth0-react";
-import { TestCase } from "../types/TestCase.ts";
-import { TestCaseResult } from "../utils/queries.tsx";
+import { StartExecutionResponse, ExecutionStatus } from '../types/runner.ts';
 
 export class ApiSnippetOperations implements SnippetOperations {
 
@@ -170,26 +169,27 @@ export class ApiSnippetOperations implements SnippetOperations {
     }
     
     // --- Test & Execution ---
-    
-    testSnippet(_testCase: Partial<TestCase>): Promise<TestCaseResult> {
-        // This should be adapted to the app's endpoint, which might proxy to the runner
-        throw new Error("Method not implemented.");
+    async startExecution(snippetId: string, environment: Record<string, string>, version: string): Promise<StartExecutionResponse> {
+        return this.request<StartExecutionResponse>(`/api/v1/snippets/${snippetId}/execution`, {
+            method: 'POST',
+            body: JSON.stringify({ environment, version }),
+        });
     }
 
-    postTestCase(_testCase: Partial<TestCase>): Promise<TestCase> {
-        // This should be adapted to the app's endpoint
-        throw new Error("Method not implemented.");
+    sendInput(snippetId: string, input: string): Promise<void> {
+        return this.request<void>(`/api/v1/snippets/${snippetId}/execution/input`, {
+            method: 'POST',
+            body: JSON.stringify({ input }),
+        });
     }
 
-    getExecutionStatus(_executionId: string): Promise<never> {
-        throw new Error("Method not implemented.");
+    cancelExecution(snippetId: string): Promise<void> {
+        return this.request<void>(`/api/v1/snippets/${snippetId}/execution`, {
+            method: 'DELETE',
+        });
     }
 
-    postExecutionInput(_executionId: string, _input: never): Promise<never> {
-        throw new Error("Method not implemented.");
-    }
-
-    deleteExecution(_executionId: string): Promise<void> {
-        throw new Error("Method not implemented.");
+    getExecutionStatus(_snippetId: string, _executionId: string): Promise<ExecutionStatus> {
+        throw new Error("Method not implemented."); // Placeholder, needs actual endpoint
     }
 }

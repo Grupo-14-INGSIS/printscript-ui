@@ -1,8 +1,7 @@
-import {TestCase} from "../types/TestCase.ts";
-import {TestCaseResult} from "./queries.tsx";
 import {Rule} from "../types/Rule.ts";
 import {FileType} from "../types/FileType.ts";
-import {CreateSnippet, PaginatedSnippets, Snippet, SnippetData, UpdateSnippet} from "./snippet.ts";
+import {CreateSnippet, PaginatedSnippets, Snippet, SnippetData} from "./snippet.ts";
+import { StartExecutionResponse, ExecutionStatus } from "../types/runner.ts"; // Import new types
 
 export interface SnippetOperations {
     getFormatRules(): Promise<Rule[]>
@@ -11,19 +10,9 @@ export interface SnippetOperations {
 
     getFileTypes(): Promise<FileType[]>
 
-    postTestCase(testCase: Partial<TestCase>): Promise<TestCase>
-
-    testSnippet(testCase: Partial<TestCase>): Promise<TestCaseResult>
-
     modifyFormatRule(newRules: Rule[], language?: string): Promise<void>
 
     modifyLintingRule(newRules: Rule[], language?: string): Promise<void>
-
-    getExecutionStatus(executionId: string): Promise<never>
-
-    postExecutionInput(executionId: string, input: never): Promise<never>
-
-    deleteExecution(executionId: string): Promise<void>
 
     createSnippet(createSnippet: CreateSnippet): Promise<void>
 
@@ -39,8 +28,12 @@ export interface SnippetOperations {
 
     shareSnippet(snippetId: string,userId: string): Promise<Snippet>
 
-    updateSnippetById(id: string, updateSnippet: UpdateSnippet): Promise<Snippet>
-
     listSnippetDescriptors(page: number,pageSize: number,sippetName?: string): Promise<PaginatedSnippets>
+
+    // --- Execution Methods ---
+    startExecution(snippetId: string, environment: Record<string, string>, version: string): Promise<StartExecutionResponse>
+    sendInput(snippetId: string, input: string): Promise<void>
+    cancelExecution(snippetId: string): Promise<void>
+    getExecutionStatus(snippetId: string, executionId: string): Promise<ExecutionStatus>
 
 }

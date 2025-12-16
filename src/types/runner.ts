@@ -22,3 +22,23 @@ export interface GetSnippetResponse {
     name: string;
     content: string;
 }
+
+export enum ExecutionEventType {
+    STARTED = "STARTED",
+    OUTPUT = "OUTPUT",
+    WAITING = "WAITING",
+    COMPLETED = "COMPLETED",
+    ERROR = "ERROR",
+}
+
+export interface StartExecutionResponse {
+    status: ExecutionEventType;
+    message: string[];
+}
+
+// For now, ExecutionStatus can be identical to StartExecutionResponse
+export interface ExecutionStatus {
+    status: ExecutionEventType;
+    message: string[];
+}
+
