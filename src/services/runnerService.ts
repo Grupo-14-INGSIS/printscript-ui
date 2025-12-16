@@ -38,36 +38,7 @@ export class RunnerService {
         return text ? JSON.parse(text) : ({} as T);
     }
 
-    private async requestText(endpoint: string, options?: RequestInit): Promise<string> {
-        const url = `${this.baseUrl}${endpoint}`;
-        const token = await this.getAccessToken({
-            authorizationParams: {
-                audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-                scope: "read:snippets write:snippets delete:snippets",
-            }
-        });
-
-        const headers: HeadersInit = {
-            'Content-Type': 'application/json',
-            ...(token && {'Authorization': `Bearer ${token}`}),
-        };
-
-        const config: RequestInit = {
-            ...options,
-            headers,
-        };
-
-        const response = await fetch(url, config);
-
-        if (!response.ok) {
-            const errorBody = await response.text();
-            throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
-        }
-
-        return response.text();
-    }
-
-    async createSnippet(snippet: CreateSnippet, userId: string): Promise<void> {
+    createSnippet(snippet: CreateSnippet, userId: string): Promise<void> {
         const { id, name, language, content } = snippet;
         const body = {
             userId: userId,
@@ -76,14 +47,16 @@ export class RunnerService {
             snippet: content, // In the Runner DTO, the content is called 'snippet'
         };
         // Use requestText and ignore the resulting string, fulfilling the Promise<void> signature
-        await this.requestText(`/api/v1/snippet/snippets/${id}`, {
+        return this.request<void>(`/api/v1/snippet/snippets/${id}`, {
             method: 'PUT',
             body: JSON.stringify(body)
         });
     }
 
-    getSnippetContent(snippetId: string): Promise<string> {
-        return this.requestText(`/api/v1/snippet/snippets/${snippetId}`);
+    async getSnippetContent(snippetId: string): Promise<string> {
+        // Assuming "snippets" is the default container
+        const response = await this.request<GetSnippetResponse>(`/api/v1/snippet/snippets/${snippetId}`);
+        return response.content;
     }
 
     startSnippetExecution(snippetId: string, data: ExecutionRequest): Promise<ExecutionResponse> {
