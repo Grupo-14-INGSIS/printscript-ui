@@ -17,11 +17,9 @@ export function loginViaAuth0Ui(username: string, password:string) {
     );
 
     cy.log('Exited cy.origin. Checking final URL.');
-    // Add logging to see what the URL is before the assertion
     cy.url().then(url => {
         cy.log(`URL after redirect is: "${url}"`);
     });
-
     // Ensure Auth0 has redirected us back to the app
     cy.url().should('equal', Cypress.env('VITE_FRONTEND_URL') + '/');
 }

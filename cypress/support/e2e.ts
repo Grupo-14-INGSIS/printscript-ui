@@ -25,26 +25,8 @@ Cypress.Commands.add('loginToAuth0', (username: string, password: string) => {
   })
   log.snapshot('before')
 
-  cy.session(
-      `auth0-${username}`,
-      () => {
-        loginViaAuth0Ui(username, password)
-      },
-      {
-        validate: () => {
-          const clientId = Cypress.env('VITE_AUTH0_CLIENT_ID');
-          const audience = Cypress.env('VITE_AUTH0_AUDIENCE');
-          const expectedKeyPrefix = `@@auth0spajs@@::${clientId}::${audience}`;
+  loginViaAuth0Ui(username, password)
 
-          cy.window().its('localStorage').then((ls) => {
-              const keys = Object.keys(ls);
-              const auth0Key = keys.find(key => key.startsWith(expectedKeyPrefix));
-              expect(auth0Key).to.exist;
-              expect(ls.getItem(auth0Key)).to.exist;
-          });
-        },
-      }
-  )
   log.snapshot('after')
   log.end()
 })
