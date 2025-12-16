@@ -4,7 +4,7 @@ import { SnippetOperations } from "../utils/snippetOperations.ts";
 import { CreateSnippet, PaginatedSnippets, Snippet, SnippetData, UpdateSnippet } from "../utils/snippet.ts";
 import { FileType } from "../types/FileType.ts";
 import { GetTokenSilentlyOptions } from "@auth0/auth0-react";
-import { StartExecutionResponse, ExecutionStatus, CancelExecutionRequest } from '../types/runner.ts';
+import { StartExecutionResponse, ExecutionStatus, CancelExecutionRequest, SharedUser } from '../types/runner.ts';
 
 export class ApiSnippetOperations implements SnippetOperations {
 
@@ -146,6 +146,10 @@ export class ApiSnippetOperations implements SnippetOperations {
             method: 'PUT',
             body: JSON.stringify({ userId }),
         });
+    }
+
+    getSharedUsers(snippetId: string): Promise<SharedUser[]> {
+        return this.request<SharedUser[]>(`/api/v1/snippets/${snippetId}/permission`);
     }
 
     // Métodos no implementados (placeholders)

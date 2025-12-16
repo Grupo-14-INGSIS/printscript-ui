@@ -120,20 +120,4 @@ export class RunnerService {
             body: JSON.stringify({ snippet: content })
         });
     }
-
-    async formatSnippet(snippetId: string, version: string): Promise<string> {
-        const response = await this.requestText(`/api/v1/snippets/${snippetId}/format`, {
-            method: 'POST',
-            body: JSON.stringify({ version })
-        });
-        return response;
-    }
-
-    async lintSnippet(snippetId: string, version: string): Promise<SnippetLintResponse> {
-        const response = await this.request<SnippetLintResponse>(`/api/v1/snippets/${snippetId}/lint`, {
-            method: 'POST',
-            body: JSON.stringify({ version })
-        });
-        return response;
-    }
 }

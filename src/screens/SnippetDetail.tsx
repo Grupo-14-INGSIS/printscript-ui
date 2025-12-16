@@ -9,17 +9,17 @@ import CloseIcon from '@mui/icons-material/Close';
 import {
   useUpdateSnippetContent, useStartExecution, useCancelExecution, useGetExecutionStatus
 } from "../utils/queries.tsx";
-import {useFormatSnippet, useGetSnippetById, useLintSnippet} from "../utils/queries.tsx"; // Added useLintSnippet
+import {useFormatSnippet, useGetSnippetById} from "../utils/queries.tsx";
 import {Bòx} from "../components/snippet-table/SnippetBox.tsx";
-import {BugReport, Delete, Download, Save, Share, PlayArrow, StopRounded, FormatAlignLeft, Troubleshoot} from "@mui/icons-material"; // Added FormatAlignLeft, Troubleshoot
+import {BugReport, Delete, Download, Save, Share, PlayArrow, StopRounded} from "@mui/icons-material";
 import {ShareSnippetModal} from "../components/snippet-detail/ShareSnippetModal.tsx";
 import {TestSnippetModal} from "../components/snippet-test/TestSnippetModal.tsx";
 import {Snippet} from "../utils/snippet.ts";
 import {SnippetExecution} from "./SnippetExecution.tsx";
+import ReadMoreIcon from '@mui/icons-material/ReadMore';
 import {queryClient} from "../App.tsx";
 import { DeleteConfirmationModal } from "../components/snippet-detail/DeleteConfirmationModal.tsx";
 import { useAuth0 } from '@auth0/auth0-react';
-import { LintingError, SnippetLintResponse } from '../types/runner.ts'; // Added LintingError, SnippetLintResponse
 
 
 type SnippetDetailProps = {
@@ -61,21 +61,10 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   const [testModalOpened, setTestModalOpened] = useState(false);
   const [runSnippet, setRunSnippet] = useState(false);
   const [executionId, setExecutionId] = useState<string | null>(null);
-  const [lintingErrors, setLintingErrors] = useState<LintingError[]>([]); // New state for linting errors
 
 
   const {data: snippet, isLoading} = useGetSnippetById(id);
-  const {mutate: formatSnippet, isLoading: isFormatLoading} = useFormatSnippet({
-    onSuccess: (formattedCode) => {
-      setCode(formattedCode);
-      setLintingErrors([]); // Clear linting errors on format
-    }
-  })
-  const {mutate: lintSnippet, isLoading: isLintLoading} = useLintSnippet({
-    onSuccess: (lintResult: SnippetLintResponse) => {
-      setLintingErrors(lintResult.errors);
-    }
-  })
+  const {mutate: formatSnippet, isLoading: isFormatLoading, data: formatSnippetData} = useFormatSnippet()
   const {mutate: updateSnippetContent, isLoading: isUpdateSnippetLoading} = useUpdateSnippetContent({onSuccess: () => queryClient.invalidateQueries(['snippet', id])})
   const {mutateAsync: startExecution, isLoading: isStartingExecution} = useStartExecution({
     onSuccess: () => {
@@ -99,6 +88,12 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
     }
   }, [snippet]);
 
+  useEffect(() => {
+    if (formatSnippetData) {
+      setCode(formatSnippetData)
+    }
+  }, [formatSnippetData])
+
   const handleRunToggle = async () => {
     if (runSnippet && executionId) { // If running, cancel
         await cancelExecution({snippetId: id, userId: user?.sub || ''}); // Using snippetId for cancel, assuming it's required
@@ -110,18 +105,6 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                 version: "1.1", // Default version
             });
         }
-    }
-  };
-
-  const handleFormat = () => {
-    if (snippet) {
-      formatSnippet({ snippetId: id, version: snippet.language === '1.0' ? '1.0' : '1.1' });
-    }
-  };
-
-  const handleLint = () => {
-    if (snippet) {
-      lintSnippet({ snippetId: id, version: snippet.language === '1.0' ? '1.0' : '1.1' });
     }
   };
 
@@ -153,14 +136,10 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                   {runSnippet ? <StopRounded/> : <PlayArrow/>}
                 </IconButton>
               </Tooltip>
+              {/* TODO: we can implement a live mode*/}
               <Tooltip title={"Format"}>
-                <IconButton onClick={handleFormat} disabled={isFormatLoading || !snippet}>
-                  <FormatAlignLeft /> {/* Changed icon to FormatAlignLeft */}
-                </IconButton>
-              </Tooltip>
-              <Tooltip title={"Lint"}>
-                <IconButton onClick={handleLint} disabled={isLintLoading || !snippet}>
-                  <Troubleshoot /> {/* New icon for Lint */}
+                <IconButton onClick={() => formatSnippet(code)} disabled={isFormatLoading}>
+                  <ReadMoreIcon />
                 </IconButton>
               </Tooltip>
               <Tooltip title={"Save changes"}>
@@ -190,18 +169,6 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                 />
               </Bòx>
             </Box>
-            {lintingErrors.length > 0 && (
-              <Box pt={1} flex={1} marginTop={2}>
-                <Alert severity="error">
-                  <Typography variant="h6">Linting Errors:</Typography>
-                  {lintingErrors.map((error, index) => (
-                    <Typography key={index}>
-                      Line {error.line}, Column {error.column}: {error.message}
-                    </Typography>
-                  ))}
-                </Alert>
-              </Box>
-            )}
             <Box pt={1} flex={1} marginTop={2}>
               <Alert severity="info">Output</Alert>
               <SnippetExecution snippetId={id} executionId={executionId} executionStatus={executionStatus} />
@@ -209,7 +176,8 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
           </>
         }
         <ShareSnippetModal open={shareModalOppened}
-                           onClose={() => setShareModalOppened(false)}/>
+                           onClose={() => setShareModalOppened(false)}
+                           snippetId={id}/>
         <TestSnippetModal open={testModalOpened} onClose={() => setTestModalOpened(false)}/>
         <DeleteConfirmationModal open={deleteConfirmationModalOpen} onClose={() => setDeleteConfirmationModalOpen(false)} id={id} setCloseDetails={handleCloseModal} />
       </Box>

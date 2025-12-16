@@ -42,21 +42,8 @@ export interface ExecutionStatus {
     message: string[];
 }
 
-export interface SnippetFormatRequest {
-    version: string;
-}
-
-export interface SnippetLintRequest {
-    version: string;
-}
-
-export interface LintingError {
-    message: string;
-    line: number;
-    column: number;
-}
-
-export interface SnippetLintResponse {
-    errors: LintingError[];
+export interface SharedUser {
+    id: string;
+    email: string;
 }
 
