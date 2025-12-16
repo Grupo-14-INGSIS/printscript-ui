@@ -74,7 +74,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   }, [formatSnippetData])
 
 
-
+  console.log("Snippet object in SnippetDetail:", snippet);
 
   return (
       <Box p={4} minWidth={'60vw'}>
