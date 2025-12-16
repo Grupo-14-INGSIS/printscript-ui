@@ -23,7 +23,7 @@ export type UpdateSnippet = {
 }
 
 export type SnippetData = {
-    id: string;
+    snippetId: string;
     name: string;
     language: string;
 };

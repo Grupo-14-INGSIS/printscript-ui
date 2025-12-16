@@ -140,7 +140,7 @@ export const useGetSnippetById = (id: string | null) => {
 
             // Combine the results
             return {
-                id: metadata.id,
+                id: metadata.snippetId,
                 name: metadata.name,
                 language: metadata.language,
                 content: content,
