@@ -17,3 +17,8 @@ export interface InputRequest {
 export interface CancelExecutionRequest {
     userId: string;
 }
+
+export interface GetSnippetResponse {
+    name: string;
+    content: string;
+}

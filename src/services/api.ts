@@ -1,8 +1,7 @@
 import { Rule } from "../types/Rule.ts";
 import { BACKEND_URL } from "../utils/constants.ts";
 import { SnippetOperations } from "../utils/snippetOperations.ts";
-import { CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet } from "../utils/snippet.ts";
-import { PaginatedUsers } from "../utils/users.ts";
+import { CreateSnippet, PaginatedSnippets, Snippet, SnippetData, UpdateSnippet } from "../utils/snippet.ts";
 import { FileType } from "../types/FileType.ts";
 import { GetTokenSilentlyOptions } from "@auth0/auth0-react";
 import { TestCase } from "../types/TestCase.ts";
@@ -102,7 +101,7 @@ export class ApiSnippetOperations implements SnippetOperations {
     
     // --- Snippets ---
 
-    listSnippetDescriptors(page: number, pageSize: number, snippetName?: string): Promise<PaginatedSnippets> {
+    async listSnippetDescriptors(page: number, pageSize: number, snippetName?: string): Promise<PaginatedSnippets> {
         const params = new URLSearchParams({
             page: String(page),
             pageSize: String(pageSize),
@@ -110,11 +109,29 @@ export class ApiSnippetOperations implements SnippetOperations {
         if (snippetName) {
             params.append('name', snippetName);
         }
-        return this.request<PaginatedSnippets>(`/api/v1/snippets?${params.toString()}`);
+        
+        const snippetsMap = await this.request<Record<string, { name: string; language: string; permission: string }>>(`/api/v1/snippets?${params.toString()}`);
+
+        const snippetsArray: Snippet[] = Object.entries(snippetsMap).map(([id, details]) => ({
+            id: id,
+            name: details.name,
+            language: details.language,
+            author: details.permission, // Using role as author for now
+            content: '', // This endpoint does not provide content
+            extension: '', // This endpoint does not provide extension
+            compliance: 'pending', // Default value
+        }));
+
+        return {
+            page: 1, // The API doesn't return pagination data, so mocking it.
+            page_size: snippetsArray.length,
+            count: snippetsArray.length,
+            snippets: snippetsArray,
+        };
     }
     
-    createSnippet(createSnippet: CreateSnippet): Promise<Snippet> {
-        return this.request<Snippet>(`/api/v1/snippets/${createSnippet.id}?language=${createSnippet.language}`, {
+    createSnippet(createSnippet: CreateSnippet): Promise<void> {
+        return this.request<void>(`/api/v1/snippets/${createSnippet.id}?language=${createSnippet.language}`, {
             method: 'PUT',
         });
     }
@@ -134,13 +151,10 @@ export class ApiSnippetOperations implements SnippetOperations {
 
     // Métodos no implementados (placeholders)
     getFileTypes(): Promise<FileType[]> {
-        throw new Error("Method not implemented.");
+        return Promise.resolve([{ language: "printscript", extension: "prs", version: "1.1" }]);
     }
-    getUserFriends(_name?: string, _page?: number, _pageSize?: number): Promise<PaginatedUsers> {
-        throw new Error("Method not implemented.");
-    }
-    getTestCases(): Promise<TestCase[]> {
-        throw new Error("Method not implemented.");
+    getTestCases(snippetId: string): Promise<string[]> {
+        return this.request<string[]>(`/api/v1/snippets/${snippetId}/tests`);
     }
     removeTestCase(_id: string): Promise<string> {
         throw new Error("Method not implemented.");
@@ -148,8 +162,8 @@ export class ApiSnippetOperations implements SnippetOperations {
     formatSnippet(_snippet: string): Promise<string> {
         throw new Error("Method not implemented.");
     }
-    getSnippetById(_id: string): Promise<Snippet | undefined> {
-        throw new Error("Method not implemented.");
+    getSnippetData(id: string): Promise<SnippetData> {
+        return this.request<SnippetData>(`/api/v1/snippets/${id}`);
     }
     updateSnippetById(_id: string, _updateSnippet: UpdateSnippet): Promise<Snippet> {
         throw new Error("Method not implemented.");

@@ -2,13 +2,9 @@ import { v4 as uuidv4 } from 'uuid';
 import {
     Box,
     Button,
-    capitalize,
     CircularProgress,
     Input,
     InputLabel,
-    MenuItem,
-    Select,
-    SelectChangeEvent,
     Typography
 } from "@mui/material";
 import {highlight, languages} from "prismjs";
@@ -29,7 +25,7 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
     onClose: () => void,
     defaultSnippet?: CreateSnippetWithLang
 }) => {
-    const [language, setLanguage] = useState(defaultSnippet?.language ?? "printscript");
+    const language = "printscript"; // Hardcoded language
     const [code, setCode] = useState(defaultSnippet?.content ?? "");
     const [snippetName, setSnippetName] = useState(defaultSnippet?.name ?? "")
     const {mutateAsync: createSnippet, isLoading: loadingSnippet} = useCreateSnippet({
@@ -52,7 +48,6 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
     useEffect(() => {
         if (defaultSnippet) {
             setCode(defaultSnippet?.content)
-            setLanguage(defaultSnippet?.language)
             setSnippetName(defaultSnippet?.name)
         }
     }, [defaultSnippet]);
@@ -65,7 +60,7 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
                                 sx={{display: 'flex', alignItems: 'center'}}>
                         Add Snippet
                     </Typography>
-                    <Button disabled={!snippetName || !code || !language || loadingSnippet} variant="contained"
+                    <Button disabled={!snippetName || !code || loadingSnippet} variant="contained"
                             disableRipple
                             sx={{boxShadow: 0}} onClick={handleCreateSnippet}>
                         <Box pr={1} display={"flex"} alignItems={"center"} justifyContent={"center"}>
@@ -84,29 +79,7 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
                 <Input onChange={e => setSnippetName(e.target.value)} value={snippetName} id="name"
                        sx={{width: '50%'}}/>
             </Box>
-            <Box sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px'
-            }}>
-                <InputLabel htmlFor="name">Language</InputLabel>
-                <Select
-                    labelId="demo-simple-select-label"
-                    id="demo-simple-select"
-                    value={language}
-                    label="Age"
-                    onChange={(e: SelectChangeEvent<string>) => setLanguage(e.target.value)}
-                    sx={{width: '50%'}}
-                >
-                    {
-                        fileTypes?.map(x => (
-                            <MenuItem data-testid={`menu-option-${x.language}`} key={x.language}
-                                      value={x.language}>{capitalize((x.language))}</MenuItem>
-                        ))
-                    }
-                </Select>
-            </Box>
-            <InputLabel>Code Snippet</InputLabel>
+            <InputLabel>Code Snippet (PrintScript)</InputLabel>
             <Box width={"100%"} sx={{
                 backgroundColor: 'black', color: 'white', borderRadius: "8px",
             }}>

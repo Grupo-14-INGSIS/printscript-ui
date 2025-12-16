@@ -2,8 +2,7 @@ import {TestCase} from "../types/TestCase.ts";
 import {TestCaseResult} from "./queries.tsx";
 import {Rule} from "../types/Rule.ts";
 import {FileType} from "../types/FileType.ts";
-import {CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet} from "./snippet.ts";
-import {PaginatedUsers} from "./users.ts";
+import {CreateSnippet, PaginatedSnippets, Snippet, SnippetData, UpdateSnippet} from "./snippet.ts";
 
 export interface SnippetOperations {
     getFormatRules(): Promise<Rule[]>
@@ -26,11 +25,9 @@ export interface SnippetOperations {
 
     deleteExecution(executionId: string): Promise<void>
 
-    getUserFriends(name?: string,page?: number,pageSize?: number): Promise<PaginatedUsers>
+    createSnippet(createSnippet: CreateSnippet): Promise<void>
 
-    createSnippet(createSnippet: CreateSnippet): Promise<Snippet>
-
-    getTestCases(): Promise<TestCase[]>
+    getTestCases(snippetId: string): Promise<string[]>
 
     removeTestCase(id: string): Promise<string>
 
@@ -38,7 +35,7 @@ export interface SnippetOperations {
 
     deleteSnippet(id: string): Promise<string>
 
-    getSnippetById(id: string): Promise<Snippet | undefined>
+    getSnippetData(id: string): Promise<SnippetData>
 
     shareSnippet(snippetId: string,userId: string): Promise<Snippet>
 

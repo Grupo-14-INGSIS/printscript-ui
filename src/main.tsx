@@ -5,10 +5,11 @@ import {createRoot} from "react-dom/client";
 import {PaginationProvider} from "./contexts/paginationContext.tsx";
 import {SnackbarProvider} from "./contexts/snackbarContext.tsx";
 import {Auth0Provider, useAuth0} from "@auth0/auth0-react";
-import {runnerService} from "./services/runnerService.ts";
+import { ServiceProvider, useServices } from "./contexts/serviceContext.tsx";
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, user } = useAuth0();
+    const { runnerService } = useServices();
     useEffect(() => {
         const registerUserOnAuth = async () => {
             if (isAuthenticated && user?.sub) {
@@ -17,12 +18,15 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
                     await runnerService.registerUser(user.sub);
                     console.log('User registered successfully');
                 } catch (error) {
-                    console.error('Error registering user:', error);
+                    // We can ignore 409 conflict, it just means the user already exists.
+                    if (!(error instanceof Error) || !error.message.includes("409")) {
+                        console.error('Error registering user:', error);
+                    }
                 }
             }
         };
         registerUserOnAuth();
-    }, [isAuthenticated, user]);
+    }, [isAuthenticated, user, runnerService]);
     return <>{children}</>;
 }
 
@@ -37,13 +41,15 @@ createRoot(document.getElementById('root')!).render(
                 scope: "openid profile email read:snippets write:snippets delete:snippets"
             }}
         >
-            <AuthWrapper>
-                <PaginationProvider>
-                    <SnackbarProvider>
-                        <App/>
-                    </SnackbarProvider>
-               </PaginationProvider>
-            </AuthWrapper>
+            <ServiceProvider>
+                <AuthWrapper>
+                    <PaginationProvider>
+                        <SnackbarProvider>
+                            <App/>
+                        </SnackbarProvider>
+                   </PaginationProvider>
+                </AuthWrapper>
+            </ServiceProvider>
         </Auth0Provider>
     </React.StrictMode>,
 )
