@@ -1,8 +1,7 @@
 import {SnippetOperations} from '../snippetOperations'
 import {FakeSnippetStore} from './fakeSnippetStore'
-import {CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet} from '../snippet'
+import {CreateSnippet, PaginatedSnippets, Snippet, SnippetData, UpdateSnippet} from '../snippet'
 import autoBind from 'auto-bind'
-import {PaginatedUsers} from "../users.ts";
 import {TestCase} from "../../types/TestCase.ts";
 import {TestCaseResult} from "../queries.tsx";
 import {FileType} from "../../types/FileType.ts";
@@ -15,18 +14,24 @@ export class FakeSnippetOperations implements SnippetOperations {
 
   constructor() {
     autoBind(this)
-  } 
-
-  createSnippet(createSnippet: CreateSnippet): Promise<Snippet> {
-    return new Promise(resolve => {
-      setTimeout(() => resolve(this.fakeStore.createSnippet(createSnippet)), DELAY)
-    })
   }
 
-  getSnippetById(id: string): Promise<Snippet | undefined> {
+  createSnippet(createSnippet: CreateSnippet): Promise<void> {
     return new Promise(resolve => {
-      setTimeout(() => resolve(this.fakeStore.getSnippetById(id)), DELAY)
+      this.fakeStore.createSnippet(createSnippet)
+      setTimeout(() => resolve(), DELAY)
     })
+  }
+  
+  getSnippetData(id: string): Promise<SnippetData> {
+      return new Promise(resolve => {
+          const snippet = this.fakeStore.getSnippetById(id);
+          if (snippet) {
+              resolve({id: snippet.id, name: snippet.name, language: snippet.language});
+          } else {
+              throw new Error("Snippet not found");
+          }
+      })
   }
 
   listSnippetDescriptors(page: number,pageSize: number): Promise<PaginatedSnippets> {
@@ -45,12 +50,6 @@ export class FakeSnippetOperations implements SnippetOperations {
   updateSnippetById(id: string, updateSnippet: UpdateSnippet): Promise<Snippet> {
     return new Promise(resolve => {
       setTimeout(() => resolve(this.fakeStore.updateSnippet(id, updateSnippet)), DELAY)
-    })
-  }
-
-  getUserFriends(name: string = "", page: number = 1, pageSize: number = 10): Promise<PaginatedUsers> {
-    return new Promise(resolve => {
-      setTimeout(() => resolve(this.fakeStore.getUserFriends(name,page,pageSize)), DELAY)
     })
   }
 
@@ -79,9 +78,10 @@ export class FakeSnippetOperations implements SnippetOperations {
     })
   }
 
-  getTestCases(): Promise<TestCase[]> {
+  getTestCases(_snippetId: string): Promise<string[]> {
     return new Promise(resolve => {
-      setTimeout(() => resolve(this.fakeStore.getTestCases()), DELAY)
+      // Returning just IDs as strings now
+      setTimeout(() => resolve(this.fakeStore.getTestCases().map(tc => tc.id)), DELAY)
     })
   }
 

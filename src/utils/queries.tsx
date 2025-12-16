@@ -3,7 +3,6 @@ import {TestCase} from "../types/TestCase.ts";
 import {Rule} from "../types/Rule.ts";
 import {FileType} from "../types/FileType.ts";
 import {CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet} from "./snippet.ts";
-import {PaginatedUsers} from "./users.ts";
 import { useServices } from '../contexts/serviceContext.tsx';
 import { useAuth0 } from '@auth0/auth0-react';
 
@@ -90,14 +89,11 @@ export const useCreateSnippet = ({onSuccess}: {onSuccess: () => void}): UseMutat
     );
 };
 
-export const useGetUsers = (name: string = "", page: number = 0, pageSize: number = 10) => {
+export const useGetTestCases = (snippetId: string | null) => {
     const { apiService } = useServices();
-    return useQuery<PaginatedUsers, Error>(['users',name,page,pageSize], () => apiService.getUserFriends(name,page, pageSize));
-};
-
-export const useGetTestCases = () => {
-    const { apiService } = useServices();
-    return useQuery<TestCase[] | undefined, Error>(['testCases'], () => apiService.getTestCases(), {});
+    return useQuery<string[], Error>(['testCases', snippetId], () => apiService.getTestCases(snippetId!), {
+        enabled: !!snippetId,
+    });
 };
 
 export const useRemoveTestCase = ({onSuccess}: {onSuccess: () => void}) => {
@@ -128,11 +124,35 @@ export const useFormatSnippet = () => {
     );
 }
 
-export const useGetSnippetById = (id: string) => {
-    const { apiService } = useServices();
-    return useQuery<Snippet | undefined, Error>(['snippet', id], () => apiService.getSnippetById(id), {
-        enabled: !!id,
-    });
+export const useGetSnippetById = (id: string | null) => {
+    const { apiService, runnerService } = useServices();
+
+    return useQuery<Snippet, Error>(
+        ['snippet', id],
+        async () => {
+            if (!id) throw new Error("No snippet ID provided");
+
+            // Fire both requests in parallel
+            const metadataPromise = apiService.getSnippetData(id);
+            const contentPromise = runnerService.getSnippetContent(id);
+
+            const [metadata, content] = await Promise.all([metadataPromise, contentPromise]);
+
+            // Combine the results
+            return {
+                id: metadata.id,
+                name: metadata.name,
+                language: metadata.language,
+                content: content,
+                extension: '', // Or derive from language
+                compliance: 'pending', // Default value
+                author: '', // Not provided by these endpoints
+            };
+        },
+        {
+            enabled: !!id,
+        }
+    );
 };
 
 export const useShareSnippet = () => {

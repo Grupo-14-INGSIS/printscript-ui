@@ -22,6 +22,12 @@ export type UpdateSnippet = {
   content: string
 }
 
+export type SnippetData = {
+    id: string;
+    name: string;
+    language: string;
+};
+
 export type Snippet = CreateSnippet & {
   id: string
 } & SnippetStatus
