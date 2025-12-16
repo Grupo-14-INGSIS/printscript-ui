@@ -7,7 +7,7 @@ import "prismjs/themes/prism-okaidia.css";
 import {Alert, Box, CircularProgress, IconButton, Tooltip, Typography} from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import {
-  useUpdateSnippetById
+  useUpdateSnippetContent
 } from "../utils/queries.tsx";
 import {useFormatSnippet, useGetSnippetById} from "../utils/queries.tsx";
 import {Bòx} from "../components/snippet-table/SnippetBox.tsx";
@@ -34,7 +34,7 @@ const DownloadButton = ({snippet}: { snippet?: Snippet }) => {
       <IconButton sx={{
         cursor: "pointer"
       }}>
-        <a download={`${snippet.name}.${snippet.extension}`} target="_blank"
+        <a download={`${snippet.name}.ps`} target="_blank"
            rel="noreferrer" href={URL.createObjectURL(file)} style={{
           textDecoration: "none",
           color: "inherit",
@@ -59,7 +59,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
 
   const {data: snippet, isLoading} = useGetSnippetById(id);
   const {mutate: formatSnippet, isLoading: isFormatLoading, data: formatSnippetData} = useFormatSnippet()
-  const {mutate: updateSnippet, isLoading: isUpdateSnippetLoading} = useUpdateSnippetById({onSuccess: () => queryClient.invalidateQueries(['snippet', id])})
+  const {mutate: updateSnippetContent, isLoading: isUpdateSnippetLoading} = useUpdateSnippetContent({onSuccess: () => queryClient.invalidateQueries(['snippet', id])})
 
   useEffect(() => {
     if (snippet) {
@@ -111,7 +111,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                 </IconButton>
               </Tooltip>
               <Tooltip title={"Save changes"}>
-                <IconButton color={"primary"} onClick={() => updateSnippet({id: id, updateSnippet: {content: code}})} disabled={isUpdateSnippetLoading || snippet?.content === code} >
+                <IconButton color={"primary"} onClick={() => updateSnippetContent({id: id, content: code})} disabled={isUpdateSnippetLoading || snippet?.content === code} >
                   <Save />
                 </IconButton>
               </Tooltip>

@@ -85,4 +85,11 @@ export class RunnerService {
             method: 'PUT',
         });
     }
+
+    updateSnippetContent(id: string, content: string): Promise<void> {
+        return this.request<void>(`/api/v1/snippet/snippets/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ snippet: content })
+        });
+    }
 }

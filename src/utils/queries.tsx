@@ -2,7 +2,7 @@ import {useMutation, UseMutationResult, useQuery} from 'react-query';
 import {TestCase} from "../types/TestCase.ts";
 import {Rule} from "../types/Rule.ts";
 import {FileType} from "../types/FileType.ts";
-import {CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet} from "./snippet.ts";
+import {CreateSnippet, PaginatedSnippets, Snippet} from "./snippet.ts";
 import { useServices } from '../contexts/serviceContext.tsx';
 import { useAuth0 } from '@auth0/auth0-react';
 
@@ -144,7 +144,7 @@ export const useGetSnippetById = (id: string | null) => {
                 name: metadata.name,
                 language: metadata.language,
                 content: content,
-                extension: '', // Or derive from language
+                extension: 'ps', // Hardcode to .ps as requested
                 compliance: 'pending', // Default value
                 author: '', // Not provided by these endpoints
             };
@@ -162,13 +162,13 @@ export const useShareSnippet = () => {
     );
 };
 
-export const useUpdateSnippetById = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<Snippet, Error, {
+export const useUpdateSnippetContent = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<void, Error, {
     id: string;
-    updateSnippet: UpdateSnippet
+    content: string
 }> => {
-    const { apiService } = useServices();
-    return useMutation<Snippet, Error, { id: string; updateSnippet: UpdateSnippet }>(
-        ({id, updateSnippet}) => apiService.updateSnippetById(id, updateSnippet),{
+    const { runnerService } = useServices();
+    return useMutation<void, Error, { id: string; content: string }>(
+        ({id, content}) => runnerService.updateSnippetContent(id, content),{
             onSuccess,
         }
     );
