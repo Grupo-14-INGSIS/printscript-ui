@@ -10,7 +10,7 @@ describe('Add snippet tests', () => {
     // )
     cy.intercept('GET', BACKEND_URL+"/snippets/*", {
       statusCode: 201,
-      body: fakeStore.getSnippetById("1"),
+      body: fakeStore.getSnippetData("1"),
     }).as("getSnippetById")
     cy.intercept('GET', BACKEND_URL+"/snippets").as("getSnippets")
 

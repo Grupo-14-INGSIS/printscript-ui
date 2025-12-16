@@ -1,7 +1,6 @@
-import {AUTH0_PASSWORD, AUTH0_USERNAME, BACKEND_URL, FRONTEND_URL, RUNNER_URL} from "../../src/utils/constants";
+import {AUTH0_PASSWORD, AUTH0_USERNAME, BACKEND_URL, FRONTEND_URL} from "../../src/utils/constants";
 import {CreateSnippet} from "../../src/utils/snippet";
 import {FakeSnippetStore} from "../../src/utils/mock/fakeSnippetStore"; // Import FakeSnippetStore
-import {v4 as uuid} from 'uuid'; // Import uuid
 
 const fakeSnippetStore = new FakeSnippetStore(); // Create an instance of the fake store
 
@@ -20,27 +19,22 @@ describe('Home', () => {
       });
     }).as('getSnippetsList');
 
-    // Intercept PUT request for creating a snippet
-    cy.intercept('PUT', RUNNER_URL + "/api/v1/snippet/snippets/*", (req) => {
+    // Intercept PUT request for creating a snippet (UI calls App, App calls Runner)
+    cy.intercept('PUT', BACKEND_URL + "/api/v1/snippets/*", (req) => {
       const snippetDataFromRequest = { // Data as sent by the application
         id: req.body.id,
         name: req.body.name,
         language: req.body.language,
-        content: req.body.snippet,
-        extension: 'prs' // Assuming default extension, might need to derive from req.body.language
+        content: '', // App receives only metadata
+        extension: 'prs'
       };
       // Use the fake store's createSnippet method to add it to the mock data
-      const createdSnippet = fakeSnippetStore.createSnippet(snippetDataFromRequest);
+      fakeSnippetStore.createSnippet(snippetDataFromRequest); // Store metadata
       req.reply({
         statusCode: 200,
-        body: createdSnippet,
+        body: {}, // App expects empty body for PUT /snippets/{id}
       });
     }).as('createSnippet');
-
-  })
-
-  before(() => {
-    // Remove redundant process.env assignments
   })
 
   it('Renders home', () => {

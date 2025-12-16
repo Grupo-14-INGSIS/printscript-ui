@@ -4,7 +4,7 @@ import {FileType} from "../types/FileType.ts";
 import {CreateSnippet, PaginatedSnippets, Snippet} from "./snippet.ts";
 import { useServices } from '../contexts/serviceContext.tsx';
 import { useAuth0 } from '@auth0/auth0-react';
-import { StartExecutionResponse, ExecutionStatus } from '../types/runner.ts';
+import { StartExecutionResponse, ExecutionStatus, SnippetLintResponse } from '../types/runner.ts';
 
 export const useGetFormatRules = () => {
   const { apiService } = useServices();
@@ -124,10 +124,19 @@ export const useDeleteSnippet = ({onSuccess}: {onSuccess: () => void}) => {
     );
 }
 
-export const useFormatSnippet = () => {
-    const { apiService } = useServices();
-    return useMutation<string, Error, string>(
-        (snippetContent: string) => apiService.formatSnippet(snippetContent)
+export const useFormatSnippet = ({onSuccess}: {onSuccess: (formattedCode: string) => void}) => {
+    const { runnerService } = useServices();
+    return useMutation<string, Error, { snippetId: string; version: string }>(
+        ({snippetId, version}: { snippetId: string; version: string }) => runnerService.formatSnippet(snippetId, version),
+        {onSuccess}
+    );
+}
+
+export const useLintSnippet = ({onSuccess}: {onSuccess: (lintingResults: SnippetLintResponse) => void}) => {
+    const { runnerService } = useServices();
+    return useMutation<SnippetLintResponse, Error, { snippetId: string; version: string }>(
+        ({snippetId, version}: { snippetId: string; version: string }) => runnerService.lintSnippet(snippetId, version),
+        {onSuccess}
     );
 }
 
