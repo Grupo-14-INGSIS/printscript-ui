@@ -33,7 +33,7 @@ export interface SnippetOperations {
     // --- Execution Methods ---
     startExecution(snippetId: string, environment: Record<string, string>, version: string): Promise<StartExecutionResponse>
     sendInput(snippetId: string, input: string): Promise<void>
-    cancelExecution(snippetId: string): Promise<void>
+    cancelExecution(snippetId: string, userId: string): Promise<void>
     getExecutionStatus(snippetId: string, executionId: string): Promise<ExecutionStatus>
 
 }

@@ -19,6 +19,7 @@ import {SnippetExecution} from "./SnippetExecution.tsx";
 import ReadMoreIcon from '@mui/icons-material/ReadMore';
 import {queryClient} from "../App.tsx";
 import { DeleteConfirmationModal } from "../components/snippet-detail/DeleteConfirmationModal.tsx";
+import { useAuth0 } from '@auth0/auth0-react';
 
 
 type SnippetDetailProps = {
@@ -51,6 +52,7 @@ const DownloadButton = ({snippet}: { snippet?: Snippet }) => {
 
 export const SnippetDetail = (props: SnippetDetailProps) => {
   const {id, handleCloseModal} = props;
+  const { user } = useAuth0();
   const [code, setCode] = useState(
       ""
   );
@@ -94,7 +96,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
 
   const handleRunToggle = async () => {
     if (runSnippet && executionId) { // If running, cancel
-        await cancelExecution(id); // Using snippetId for cancel, assuming it's required
+        await cancelExecution({snippetId: id, userId: user?.sub || ''}); // Using snippetId for cancel, assuming it's required
     } else { // If not running, start
         if (snippet) {
             await startExecution({

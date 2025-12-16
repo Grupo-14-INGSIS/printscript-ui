@@ -4,7 +4,7 @@ import { SnippetOperations } from "../utils/snippetOperations.ts";
 import { CreateSnippet, PaginatedSnippets, Snippet, SnippetData, UpdateSnippet } from "../utils/snippet.ts";
 import { FileType } from "../types/FileType.ts";
 import { GetTokenSilentlyOptions } from "@auth0/auth0-react";
-import { StartExecutionResponse, ExecutionStatus } from '../types/runner.ts';
+import { StartExecutionResponse, ExecutionStatus, CancelExecutionRequest } from '../types/runner.ts';
 
 export class ApiSnippetOperations implements SnippetOperations {
 
@@ -183,9 +183,10 @@ export class ApiSnippetOperations implements SnippetOperations {
         });
     }
 
-    cancelExecution(snippetId: string): Promise<void> {
+    cancelExecution(snippetId: string, userId: string): Promise<void> {
         return this.request<void>(`/api/v1/snippets/${snippetId}/execution`, {
             method: 'DELETE',
+            body: JSON.stringify({ userId } as CancelExecutionRequest),
         });
     }
 

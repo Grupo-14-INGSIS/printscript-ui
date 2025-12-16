@@ -58,10 +58,14 @@ export const useSendInput = ({onSuccess}: {onSuccess: () => void}): UseMutationR
     );
 };
 
-export const useCancelExecution = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<void, Error, string> => {
+export const useCancelExecution = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<void, Error, {snippetId: string, userId: string}> => {
     const { apiService } = useServices();
-    return useMutation<void, Error, string>(
-        (snippetId: string) => apiService.cancelExecution(snippetId),
+    const { user } = useAuth0();
+    return useMutation<void, Error, {snippetId: string, userId: string}>(
+        ({snippetId, userId}: {snippetId: string, userId: string}) => {
+            if (!user?.sub) throw new Error("User not authenticated");
+            return apiService.cancelExecution(snippetId, userId);
+        },
         {onSuccess}
     );
 };
