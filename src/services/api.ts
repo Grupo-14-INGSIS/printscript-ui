@@ -189,7 +189,8 @@ export class ApiSnippetOperations implements SnippetOperations {
         });
     }
 
-    getExecutionStatus(_snippetId: string, _executionId: string): Promise<ExecutionStatus> {
-        throw new Error("Method not implemented."); // Placeholder, needs actual endpoint
+    getExecutionStatus(snippetId: string, _executionId: string): Promise<ExecutionStatus> {
+        // The App's endpoint is /api/v1/snippets/{snippetId}/run/status
+        return this.request<ExecutionStatus>(`/api/v1/snippets/${snippetId}/run/status`);
     }
 }
