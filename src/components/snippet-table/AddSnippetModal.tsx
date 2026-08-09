@@ -20,6 +20,7 @@ import { FileType } from "../../types/FileType.ts";
 import {ModalWrapper} from "../common/ModalWrapper.tsx";
 import {useCreateSnippet, useGetFileTypes} from "../../utils/queries.tsx";
 import {queryClient} from "../../App.tsx";
+import {useSnackbarContext} from "../../contexts/snackbarContext.tsx";
 
 export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
     open: boolean,
@@ -28,22 +29,31 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
 }) => {
     const language = "printscript"; // Hardcoded language
     const [code, setCode] = useState(defaultSnippet?.content ?? "");
-    const [snippetName, setSnippetName] = useState(defaultSnippet?.name ?? "")
+    const [snippetName, setSnippetName] = useState(defaultSnippet?.name ?? "");
+    const {createSnackbar} = useSnackbarContext();
     const {mutateAsync: createSnippet, isLoading: loadingSnippet} = useCreateSnippet({
-        onSuccess: () => queryClient.invalidateQueries('listSnippets')
+        onSuccess: () => {
+            queryClient.invalidateQueries('listSnippets');
+            createSnackbar('success', 'Snippet created successfully');
+            onClose();
+        }
     })
     const {data: fileTypes} = useGetFileTypes();
 
     const handleCreateSnippet = async () => {
-        const newSnippet: CreateSnippet = {
-            id: uuidv4(),
-            name: snippetName,
-            content: code,
-            language: language,
-            extension: fileTypes?.find((f: FileType) => f.language === language)?.extension ?? "prs"
+        try {
+            const newSnippet: CreateSnippet = {
+                id: uuidv4(),
+                name: snippetName,
+                content: code,
+                language: language,
+                extension: fileTypes?.find((f: FileType) => f.language === language)?.extension ?? "prs"
+            }
+            await createSnippet(newSnippet);
+        } catch (err: any) {
+            console.error("Error creating snippet:", err);
+            createSnackbar('error', err?.message ?? 'Failed to create snippet');
         }
-        await createSnippet(newSnippet);
-        onClose();
     }
 
     useEffect(() => {

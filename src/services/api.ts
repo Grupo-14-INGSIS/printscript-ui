@@ -129,9 +129,14 @@ export class ApiSnippetOperations implements SnippetOperations {
         };
     }
     
-    createSnippet(createSnippet: CreateSnippet): Promise<void> {
-        return this.request<void>(`/api/v1/snippets/${createSnippet.id}?language=${createSnippet.language}`, {
+    createSnippet(createSnippet: CreateSnippet, userId?: string): Promise<void> {
+        return this.request<void>(`/api/v1/snippets/${createSnippet.id}`, {
             method: 'PUT',
+            body: JSON.stringify({
+                userId: userId ?? '',
+                name: createSnippet.name,
+                language: createSnippet.language,
+            }),
         });
     }
 

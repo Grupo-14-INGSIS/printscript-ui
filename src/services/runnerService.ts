@@ -1,5 +1,5 @@
 import { RUNNER_URL } from "../utils/constants";
-import { CancelExecutionRequest, ExecutionRequest, ExecutionResponse, GetSnippetResponse, InputRequest } from "../types/runner";
+import { CancelExecutionRequest, ExecutionRequest, ExecutionResponse, InputRequest } from "../types/runner";
 import { GetTokenSilentlyOptions } from "@auth0/auth0-react";
 import { CreateSnippet } from "../utils/snippet.ts";
 
@@ -13,7 +13,6 @@ export class RunnerService {
         const token = await this.getAccessToken({
             authorizationParams: {
                 audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-                scope: "read:snippets write:snippets delete:snippets",
             }
         });
 
@@ -43,7 +42,6 @@ export class RunnerService {
         const token = await this.getAccessToken({
             authorizationParams: {
                 audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-                scope: "read:snippets write:snippets delete:snippets",
             }
         });
 
@@ -67,24 +65,17 @@ export class RunnerService {
         return response.text();
     }
 
-    async createSnippet(snippet: CreateSnippet, userId: string): Promise<void> {
-        const { id, name, language, content } = snippet;
-        const body = {
-            userId: userId,
-            name: name,
-            language: language,
-            snippet: content, // In the Runner DTO, the content is called 'snippet'
-        };
+    async createSnippet(snippet: CreateSnippet): Promise<void> {
+        const { id, content } = snippet;
         await this.requestText(`/api/v1/snippet/snippets/${id}`, {
             method: 'PUT',
-            body: JSON.stringify(body)
+            body: content,
         });
     }
 
     async getSnippetContent(snippetId: string): Promise<string> {
         // Assuming "snippets" is the default container
-        const response = await this.request<GetSnippetResponse>(`/api/v1/snippet/snippets/${snippetId}`);
-        return response.content;
+        return this.requestText(`/api/v1/snippet/snippets/${snippetId}`);
     }
 
     startSnippetExecution(snippetId: string, data: ExecutionRequest): Promise<ExecutionResponse> {
@@ -116,8 +107,8 @@ export class RunnerService {
 
     async updateSnippetContent(id: string, content: string): Promise<void> {
         await this.requestText(`/api/v1/snippet/snippets/${id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ snippet: content })
+            method: 'PUT',
+            body: content,
         });
     }
 }

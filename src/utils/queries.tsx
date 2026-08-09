@@ -84,13 +84,16 @@ export const useGetFileTypes = () => {
 }
 
 export const useCreateSnippet = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<void, Error, CreateSnippet> => {
-    const { runnerService } = useServices();
+    const { runnerService, apiService } = useServices();
     const { user } = useAuth0();
 
     return useMutation<void, Error, CreateSnippet>(
-        (snippet: CreateSnippet) => {
+        async (snippet: CreateSnippet) => {
             if (!user?.sub) throw new Error("User not authenticated");
-            return runnerService.createSnippet(snippet, user.sub);
+            await Promise.all([
+                runnerService.createSnippet(snippet),
+                apiService.createSnippet(snippet, user.sub),
+            ]);
         },
         {onSuccess}
     );
