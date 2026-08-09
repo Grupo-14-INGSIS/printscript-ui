@@ -1,98 +1,76 @@
-import {AUTH0_PASSWORD, AUTH0_USERNAME, BACKEND_URL, FRONTEND_URL, RUNNER_URL} from "../../src/utils/constants";
+import {AUTH0_PASSWORD, AUTH0_USERNAME, BACKEND_URL, FRONTEND_URL} from "../../src/utils/constants";
 import {CreateSnippet} from "../../src/utils/snippet";
-import {FakeSnippetStore} from "../../src/utils/mock/fakeSnippetStore"; // Import FakeSnippetStore
-import {v4 as uuid} from 'uuid'; // Import uuid
-
-const fakeSnippetStore = new FakeSnippetStore(); // Create an instance of the fake store
 
 describe('Home', () => {
-  beforeEach(() => {
-    cy.loginToAuth0(
-        AUTH0_USERNAME,
-        AUTH0_PASSWORD
-    )
+    beforeEach(() => {
+        // cy.loginToAuth0( TODO DE-Comment when auth0 is ready
+        //     AUTH0_USERNAME,
+        //     AUTH0_PASSWORD
+        // )
+    })
+    before(() => {
 
-    // Intercept GET request for snippets list
-    cy.intercept('GET', BACKEND_URL + "/api/v1/snippets*", (req) => {
-      req.reply({
-        statusCode: 200,
-        body: fakeSnippetStore.listSnippetDescriptors(), // Return mock data
-      });
-    }).as('getSnippetsList');
+        console.log(`
+      FRONTEND_URL: ${Cypress.env("FRONTEND_URL")}
+      BACKEND_URL: ${Cypress.env("BACKEND_URL")}
+    `)
 
-    // Intercept PUT request for creating a snippet
-    cy.intercept('PUT', RUNNER_URL + "/api/v1/snippet/snippets/*", (req) => {
-      const snippetDataFromRequest = { // Data as sent by the application
-        id: req.body.id,
-        name: req.body.name,
-        language: req.body.language,
-        content: req.body.snippet,
-        extension: 'prs' // Assuming default extension, might need to derive from req.body.language
-      };
-      // Use the fake store's createSnippet method to add it to the mock data
-      const createdSnippet = fakeSnippetStore.createSnippet(snippetDataFromRequest);
-      req.reply({
-        statusCode: 200,
-        body: createdSnippet,
-      });
-    }).as('createSnippet');
+        process.env.FRONTEND_URL = Cypress.env("FRONTEND_URL");
+        process.env.BACKEND_URL = Cypress.env("BACKEND_URL");
+    })
+    it('Renders home', () => {
+        cy.visit(FRONTEND_URL)
+        /* ==== Generated with Cypress Studio ==== */
+        cy.get('.MuiTypography-h6').should('have.text', 'Printscript');
+        cy.get('.MuiBox-root > .MuiInputBase-root > .MuiInputBase-input').should('be.visible');
+        cy.get('.css-9jay18 > .MuiButton-root').should('be.visible');
+        cy.get('.css-jie5ja').click();
+        /* ==== End Cypress Studio ==== */
+    })
 
-  })
+    // You need to have at least 1 snippet in your DB for this test to pass
+    it('Renders the first snippets', () => {
+        cy.visit(FRONTEND_URL)
+        const first10Snippets = cy.get('[data-testid="snippet-row"]')
 
-  before(() => {
-    // Remove redundant process.env assignments
-  })
+        first10Snippets.should('have.length.greaterThan', 0)
 
-  it('Renders home', () => {
-    cy.visit(FRONTEND_URL)
-    /* ==== Generated with Cypress Studio ==== */
-    cy.get('.MuiTypography-h6').should('have.text', 'Printscript');
-    cy.get('.MuiBox-root > .MuiInputBase-root > .MuiInputBase-input').should('be.visible');
-    cy.get('.css-9jay18 > .MuiButton-root').should('be.visible');
-    cy.get('.css-jie5ja').click();
-    /* ==== End Cypress Studio ==== */
-  })
+        first10Snippets.should('have.length.lessThan', 10)
+    })
 
-  it('Renders the first snippets', () => {
-    cy.visit(FRONTEND_URL)
-    // Wait for the intercepted GET request
-    cy.wait('@getSnippetsList');
-    const first10Snippets = cy.get('[data-testid="snippet-row"]')
+    it('Can creat snippet find snippets by name', () => {
+        cy.visit(FRONTEND_URL)
+        const snippetData: CreateSnippet = {
+            name: "Test name",
+            content: "print(1)",
+            language: "printscript",
+            extension: ".ps"
+        }
 
-    first10Snippets.should('have.length.greaterThan', 0)
-    // There are 3 initial snippets in fakeSnippetStore
-    first10Snippets.should('have.length', fakeSnippetStore.listSnippetDescriptors().length);
-  })
+        cy.intercept('GET', BACKEND_URL+"/snippets*", (req) => {
+            req.reply((res) => {
+                expect(res.statusCode).to.eq(200);
+            });
+        }).as('getSnippets');
 
-  it('Can creat snippet find snippets by name', () => {
-    cy.visit(FRONTEND_URL)
-    const snippetData: CreateSnippet = {
-      name: "Test name",
-      content: "print(1)",
-      language: "printscript",
-      extension: ".ps"
-    }
+        cy.request({
+            method: 'POST',
+            url: '/snippets', // Adjust if you have a different base URL configured in Cypress
+            body: snippetData,
+            failOnStatusCode: false // Optional: set to true if you want the test to fail on non-2xx status codes
+        }).then((response) => {
+            expect(response.status).to.eq(200);
 
-    // Simulate UI actions to create a snippet
-    cy.contains('button', 'Add Snippet').click(); // Click the 'Add Snippet' button
-    cy.contains('li', 'Create snippet').click(); // Click the 'Create snippet' menu item
-    cy.get('input#name').type(snippetData.name); // Type the snippet name
-    cy.get('[data-testid="add-snippet-code-editor"]').type(snippetData.content); // Type the snippet content
-    cy.contains('button', 'Save Snippet').click(); // Click the save button
+            expect(response.body.name).to.eq(snippetData.name)
+            expect(response.body.content).to.eq(snippetData.content)
+            expect(response.body.language).to.eq(snippetData.language)
+            expect(response.body).to.haveOwnProperty("id")
 
-    // Wait for the mocked POST request to complete
-    cy.wait('@createSnippet').its('request.body').then((reqBody) => {
-      expect(reqBody.name).to.eq(snippetData.name);
-      expect(reqBody.snippet).to.eq(snippetData.content);
-    });
+            cy.get('.MuiBox-root > .MuiInputBase-root > .MuiInputBase-input').clear();
+            cy.get('.MuiBox-root > .MuiInputBase-root > .MuiInputBase-input').type(snippetData.name + "{enter}");
 
-    // The modal should close and the new snippet should appear in the list
-    cy.get('.MuiBox-root > .MuiInputBase-root > .MuiInputBase-input').clear();
-    cy.get('.MuiBox-root > .MuiInputBase-root > .MuiInputBase-input').type(snippetData.name + "{enter}");
-
-    // Wait for the GET snippets request to be made after search
-    cy.wait("@getSnippetsList");
-
-    cy.contains(snippetData.name).should('exist');
-  })
+            cy.wait("@getSnippets")
+            cy.contains(snippetData.name).should('exist');
+        })
+    })
 })
