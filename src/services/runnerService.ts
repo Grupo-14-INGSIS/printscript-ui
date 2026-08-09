@@ -34,48 +34,36 @@ export class RunnerService {
         }
 
         const text = await response.text();
-        return text ? JSON.parse(text) : ({} as T);
-    }
-
-    private async requestText(endpoint: string, options?: RequestInit): Promise<string> {
-        const url = `${this.baseUrl}${endpoint}`;
-        const token = await this.getAccessToken({
-            authorizationParams: {
-                audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-            }
-        });
-
-        const headers: HeadersInit = {
-            'Content-Type': 'application/json',
-            ...(token && {'Authorization': `Bearer ${token}`}),
-        };
-
-        const config: RequestInit = {
-            ...options,
-            headers,
-        };
-
-        const response = await fetch(url, config);
-
-        if (!response.ok) {
-            const errorBody = await response.text();
-            throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
+        if (!text) return {} as T;
+        try {
+            return JSON.parse(text);
+        } catch {
+            return text as unknown as T;
         }
-
-        return response.text();
     }
 
-    async createSnippet(snippet: CreateSnippet): Promise<void> {
-        const { id, content } = snippet;
-        await this.requestText(`/api/v1/snippet/snippets/${id}`, {
+    async createSnippet(snippet: CreateSnippet, userId?: string): Promise<void> {
+        const { id, content, name, language } = snippet;
+        await this.request<void>(`/api/v1/snippet/snippets/${id}`, {
             method: 'PUT',
-            body: content,
+            body: JSON.stringify({
+                userId: userId || 'default_user',
+                name: name || 'Snippet',
+                language: language || 'printscript',
+                snippet: content,
+            }),
         });
     }
 
     async getSnippetContent(snippetId: string): Promise<string> {
-        // Assuming "snippets" is the default container
-        return this.requestText(`/api/v1/snippet/snippets/${snippetId}`);
+        const res = await this.request<any>(`/api/v1/snippet/snippets/${snippetId}`);
+        if (typeof res === 'object' && res !== null && 'content' in res) {
+            return res.content;
+        }
+        if (typeof res === 'string') {
+            return res;
+        }
+        return '';
     }
 
     startSnippetExecution(snippetId: string, data: ExecutionRequest): Promise<ExecutionResponse> {
@@ -106,9 +94,11 @@ export class RunnerService {
     }
 
     async updateSnippetContent(id: string, content: string): Promise<void> {
-        await this.requestText(`/api/v1/snippet/snippets/${id}`, {
-            method: 'PUT',
-            body: content,
+        await this.request<void>(`/api/v1/snippet/snippets/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+                snippet: content,
+            }),
         });
     }
 }

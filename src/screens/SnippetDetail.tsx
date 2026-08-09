@@ -18,6 +18,8 @@ import {Snippet} from "../utils/snippet.ts";
 import {SnippetExecution} from "./SnippetExecution.tsx";
 import ReadMoreIcon from '@mui/icons-material/ReadMore';
 import {queryClient} from "../App.tsx";
+import { StartExecutionResponse } from "../types/runner.ts";
+import { useSnackbarContext } from "../contexts/snackbarContext.tsx";
 import { DeleteConfirmationModal } from "../components/snippet-detail/DeleteConfirmationModal.tsx";
 import { useAuth0 } from '@auth0/auth0-react';
 
@@ -61,14 +63,15 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   const [testModalOpened, setTestModalOpened] = useState(false);
   const [runSnippet, setRunSnippet] = useState(false);
   const [executionId, setExecutionId] = useState<string | null>(null);
-
+  const [executionResult, setExecutionResult] = useState<StartExecutionResponse | null>(null);
+  const {createSnackbar} = useSnackbarContext();
 
   const {data: snippet, isLoading} = useGetSnippetById(id);
   const {mutate: formatSnippet, isLoading: isFormatLoading, data: formatSnippetData} = useFormatSnippet()
   const {mutate: updateSnippetContent, isLoading: isUpdateSnippetLoading} = useUpdateSnippetContent({onSuccess: () => queryClient.invalidateQueries(['snippet', id])})
   const {mutateAsync: startExecution, isLoading: isStartingExecution} = useStartExecution({
-    onSuccess: () => {
-        // TODO: Backend does not return executionId, using snippetId as a workaround for now.
+    onSuccess: (data) => {
+        setExecutionResult(data);
         setExecutionId(id); 
         setRunSnippet(true);
     }
@@ -76,6 +79,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   const {mutateAsync: cancelExecution, isLoading: isCancellingExecution} = useCancelExecution({
     onSuccess: () => {
         setExecutionId(null);
+        setExecutionResult(null);
         setRunSnippet(false);
     }
   });
@@ -96,14 +100,18 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
 
   const handleRunToggle = async () => {
     if (runSnippet && executionId) { // If running, cancel
-        await cancelExecution({snippetId: id, userId: user?.sub || ''}); // Using snippetId for cancel, assuming it's required
+        await cancelExecution({snippetId: id, userId: user?.sub || ''});
     } else { // If not running, start
-        if (snippet) {
-            await startExecution({
+        try {
+            const res = await startExecution({
                 snippetId: id,
                 environment: {}, // Default empty environment
                 version: "1.1", // Default version
             });
+            setExecutionResult(res);
+        } catch (err: any) {
+            console.error("Execution error:", err);
+            createSnackbar('error', err?.message ?? 'Execution failed');
         }
     }
   };
@@ -171,7 +179,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
             </Box>
             <Box pt={1} flex={1} marginTop={2}>
               <Alert severity="info">Output</Alert>
-              <SnippetExecution snippetId={id} executionId={executionId} executionStatus={executionStatus} />
+              <SnippetExecution snippetId={id} executionId={executionId} executionStatus={executionResult || executionStatus} />
             </Box>
           </>
         }

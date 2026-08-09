@@ -27,7 +27,9 @@ export const SnippetExecution = ({ snippetId, executionId, executionStatus }: Sn
 
   useEffect(() => {
     if (executionStatus && executionStatus.message) {
-      setOutputLines(prevOutput => [...prevOutput, ...executionStatus.message]);
+      setOutputLines(executionStatus.message);
+    } else {
+      setOutputLines([]);
     }
   }, [executionStatus]);
 
