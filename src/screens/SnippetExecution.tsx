@@ -1,41 +1,83 @@
-import {OutlinedInput} from "@mui/material";
+import {Box, OutlinedInput, CircularProgress, Typography} from "@mui/material";
 import {highlight, languages} from "prismjs";
 import Editor from "react-simple-code-editor";
 import {Bòx} from "../components/snippet-table/SnippetBox.tsx";
-import {useState} from "react";
+import {useEffect, useState} from "react";
+import { ExecutionEventType, ExecutionStatus } from '../types/runner.ts';
+import { useSendInput } from '../utils/queries.tsx';
+import {queryClient} from "../App.tsx";
 
-export const SnippetExecution = () => {
-  // Here you should provide all the logic to connect to your sockets.
-  const [input, setInput] = useState<string>("")
-  const [output, setOutput] = useState<string[]>([]);
 
-  //TODO: get the output from the server
-  const code = output.join("\n")
+type SnippetExecutionProps = {
+    snippetId: string;
+    executionId: string | null;
+    executionStatus?: ExecutionStatus;
+}
 
-  const handleEnter = (event: { key: string }) => {
-    if (event.key === 'Enter') {
-      //TODO: logic to send inputs to server
-      setOutput([...output, input])
-      setInput("")
+export const SnippetExecution = ({ snippetId, executionId, executionStatus }: SnippetExecutionProps) => {
+  const [input, setInput] = useState<string>("");
+  const [outputLines, setOutputLines] = useState<string[]>([]);
+
+  const {mutateAsync: sendInput, isLoading: isSendingInput} = useSendInput({
+      onSuccess: () => {
+          queryClient.invalidateQueries(['executionStatus', snippetId, executionId]);
+      }
+  });
+
+
+  useEffect(() => {
+    if (executionStatus && executionStatus.message) {
+      setOutputLines(prevOutput => [...prevOutput, ...executionStatus.message]);
+    }
+  }, [executionStatus]);
+
+  const handleEnter = async (event: { key: string }) => {
+    if (event.key === 'Enter' && input.trim() !== '' && executionStatus?.status === ExecutionEventType.WAITING) {
+        if (executionId) {
+            await sendInput({ snippetId: snippetId, input: input });
+            setInput("");
+        }
     }
   };
 
+    const currentOutput = outputLines.join("\n");
+
     return (
       <>
-        <Bòx flex={1} overflow={"none"} minHeight={200} bgcolor={'black'} color={'white'} code={code}>
-            <Editor
-              value={code}
-              padding={10}
-              onValueChange={(code) => setInput(code)}
-              highlight={(code) => highlight(code, languages.js, 'javascript')}
-              maxLength={1000}
-              style={{
-                  fontFamily: "monospace",
-                  fontSize: 17,
-              }}
-            />
+        <Bòx flex={1} overflow={"none"} minHeight={200} bgcolor={'black'} color={'white'} code={currentOutput}>
+            {isSendingInput ? (
+                <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+                    <CircularProgress />
+                </Box>
+            ) : (
+                <Editor
+                  value={currentOutput}
+                  padding={10}
+                  onValueChange={() => {}} // No-op for read-only editor
+                  highlight={(code) => highlight(code, languages.js, 'javascript')}
+                  readOnly // Output editor is read-only
+                  style={{
+                      fontFamily: "monospace",
+                      fontSize: 17,
+                  }}
+                />
+            )}
         </Bòx>
-        <OutlinedInput onKeyDown={handleEnter} value={input} onChange={e => setInput(e.target.value)} placeholder="Type here" fullWidth/>
+        {executionStatus?.status === ExecutionEventType.WAITING && (
+            <OutlinedInput
+                onKeyDown={handleEnter}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                placeholder="Type your input here"
+                fullWidth
+                disabled={isSendingInput}
+            />
+        )}
+        {(executionStatus?.status === ExecutionEventType.COMPLETED || executionStatus?.status === ExecutionEventType.ERROR) && (
+            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                Execution {executionStatus.status === ExecutionEventType.COMPLETED ? 'finished' : 'failed'}.
+            </Typography>
+        )}
       </>
     )
 }
