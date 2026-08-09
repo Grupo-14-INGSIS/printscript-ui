@@ -4,6 +4,7 @@ import { FileType } from "../../types/FileType.ts"; // Corrected path
 import { StartExecutionResponse, ExecutionStatus } from "../../types/runner.ts"; // Corrected path
 import { Rule } from "../../types/Rule.ts"; // Corrected path
 import { FakeSnippetStore } from "./fakeSnippetStore.ts"; // Added import for FakeSnippetStore
+import { formatPrintScriptCode } from "../formatter.ts";
 
 export class FakeSnippetOperations implements SnippetOperations {
     constructor(private fakeStore: FakeSnippetStore) { // Changed 'any' to 'FakeSnippetStore'
@@ -69,7 +70,7 @@ export class FakeSnippetOperations implements SnippetOperations {
     }
 
     formatSnippet(snippet: string): Promise<string> {
-        return Promise.resolve(snippet);
+        return Promise.resolve(formatPrintScriptCode(snippet, []));
     }
 
     getSnippetData(id: string): Promise<SnippetData> {

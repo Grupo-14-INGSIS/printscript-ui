@@ -5,6 +5,7 @@ import { CreateSnippet, PaginatedSnippets, Snippet, SnippetData, UpdateSnippet }
 import { FileType } from "../types/FileType.ts";
 import { GetTokenSilentlyOptions } from "@auth0/auth0-react";
 import { StartExecutionResponse, ExecutionStatus, CancelExecutionRequest, SharedUser } from '../types/runner.ts';
+import { formatPrintScriptCode } from "../utils/formatter.ts";
 
 export class ApiSnippetOperations implements SnippetOperations {
 
@@ -167,8 +168,13 @@ export class ApiSnippetOperations implements SnippetOperations {
     removeTestCase(_id: string): Promise<string> {
         throw new Error("Method not implemented.");
     }
-    formatSnippet(_snippet: string): Promise<string> {
-        throw new Error("Method not implemented.");
+    async formatSnippet(snippet: string): Promise<string> {
+        try {
+            const rules = await this.getFormatRules("printscript");
+            return formatPrintScriptCode(snippet, rules);
+        } catch (_error) {
+            return formatPrintScriptCode(snippet, []);
+        }
     }
     getSnippetData(id: string): Promise<SnippetData> {
         return this.request<SnippetData>(`/api/v1/snippets/${id}`);
