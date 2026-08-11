@@ -41,6 +41,7 @@ createRoot(document.getElementById('root')!).render(
                 scope: "openid profile email read:snippets write:snippets delete:snippets",
                 connection: import.meta.env.VITE_AUTH0_REALM
             }}
+            useRefreshTokens={true}
             cacheLocation="localstorage"
         >
             <ServiceProvider>

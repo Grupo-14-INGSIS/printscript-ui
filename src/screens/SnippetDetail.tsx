@@ -4,7 +4,7 @@ import {highlight, languages} from "prismjs";
 import "prismjs/components/prism-clike";
 import "prismjs/components/prism-javascript";
 import "prismjs/themes/prism-okaidia.css";
-import {Alert, Box, CircularProgress, IconButton, Tooltip, Typography} from "@mui/material";
+import {Alert, Box, CircularProgress, IconButton, Tooltip, Typography, Select, MenuItem, FormControl, InputLabel} from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import {
   useUpdateSnippetContent, useStartExecution, useCancelExecution, useGetExecutionStatus
@@ -58,6 +58,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   const [code, setCode] = useState(
       ""
   );
+  const [version, setVersion] = useState<string>("1.0");
   const [shareModalOppened, setShareModalOppened] = useState(false)
   const [deleteConfirmationModalOpen, setDeleteConfirmationModalOpen] = useState(false)
   const [testModalOpened, setTestModalOpened] = useState(false);
@@ -73,7 +74,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
     onSuccess: (data) => {
         setExecutionResult(data);
         setExecutionId(id); 
-        setRunSnippet(true);
+        setRunSnippet(false);
     }
   });
   const {mutateAsync: cancelExecution, isLoading: isCancellingExecution} = useCancelExecution({
@@ -89,6 +90,10 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   useEffect(() => {
     if (snippet) {
       setCode(snippet.content);
+      // Auto-detect 1.1 if code contains 1.1 syntax
+      if (snippet.content.includes("const ") || snippet.content.includes("if ") || snippet.content.includes("readInput") || snippet.content.includes("readEnv")) {
+        setVersion("1.1");
+      }
     }
   }, [snippet]);
 
@@ -103,10 +108,14 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
         await cancelExecution({snippetId: id, userId: user?.sub || ''});
     } else { // If not running, start
         try {
+            if (snippet && snippet.content !== code) {
+                await updateSnippetContent({id: id, content: code});
+            }
+            const detectedVersion = (code.includes("const ") || code.includes("if ") || code.includes("readInput") || code.includes("readEnv")) ? "1.1" : version;
             const res = await startExecution({
                 snippetId: id,
                 environment: {}, // Default empty environment
-                version: "1.1", // Default version
+                version: detectedVersion,
             });
             setExecutionResult(res);
         } catch (err: any) {
@@ -127,7 +136,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
             <CircularProgress/>
           </>) : <>
             <Typography variant="h4" fontWeight={"bold"}>{snippet?.name ?? "Snippet"}</Typography>
-            <Box display="flex" flexDirection="row" gap="8px" padding="8px">
+            <Box display="flex" flexDirection="row" gap="8px" padding="8px" alignItems="center">
               <Tooltip title={"Share"}>
                 <IconButton onClick={() => setShareModalOppened(true)}>
                   <Share/>
@@ -139,6 +148,19 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                 </IconButton>
               </Tooltip>
               <DownloadButton snippet={snippet}/>
+              <FormControl size="small" sx={{ minWidth: 90 }}>
+                <InputLabel id="version-select-label">Version</InputLabel>
+                <Select
+                  labelId="version-select-label"
+                  value={version}
+                  label="Version"
+                  onChange={(e) => setVersion(e.target.value)}
+                  size="small"
+                >
+                  <MenuItem value="1.0">1.0</MenuItem>
+                  <MenuItem value="1.1">1.1</MenuItem>
+                </Select>
+              </FormControl>
               <Tooltip title={runSnippet ? "Stop run" : "Run"}>
                 <IconButton onClick={handleRunToggle} disabled={isStartingExecution || isCancellingExecution || !snippet}>
                   {runSnippet ? <StopRounded/> : <PlayArrow/>}
