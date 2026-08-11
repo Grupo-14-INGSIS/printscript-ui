@@ -1,13 +1,10 @@
+import { v4 as uuidv4 } from 'uuid';
 import {
     Box,
     Button,
-    capitalize,
     CircularProgress,
     Input,
     InputLabel,
-    MenuItem,
-    Select,
-    SelectChangeEvent,
     Typography
 } from "@mui/material";
 import {highlight, languages} from "prismjs";
@@ -19,38 +16,49 @@ import "prismjs/components/prism-javascript";
 import "prismjs/themes/prism-okaidia.css";
 import {Save} from "@mui/icons-material";
 import {CreateSnippet, CreateSnippetWithLang} from "../../utils/snippet.ts";
+import { FileType } from "../../types/FileType.ts";
 import {ModalWrapper} from "../common/ModalWrapper.tsx";
 import {useCreateSnippet, useGetFileTypes} from "../../utils/queries.tsx";
 import {queryClient} from "../../App.tsx";
+import {useSnackbarContext} from "../../contexts/snackbarContext.tsx";
 
 export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
     open: boolean,
     onClose: () => void,
     defaultSnippet?: CreateSnippetWithLang
 }) => {
-    const [language, setLanguage] = useState(defaultSnippet?.language ?? "printscript");
+    const language = "printscript"; // Hardcoded language
     const [code, setCode] = useState(defaultSnippet?.content ?? "");
-    const [snippetName, setSnippetName] = useState(defaultSnippet?.name ?? "")
+    const [snippetName, setSnippetName] = useState(defaultSnippet?.name ?? "");
+    const {createSnackbar} = useSnackbarContext();
     const {mutateAsync: createSnippet, isLoading: loadingSnippet} = useCreateSnippet({
-        onSuccess: () => queryClient.invalidateQueries('listSnippets')
+        onSuccess: () => {
+            queryClient.invalidateQueries('listSnippets');
+            createSnackbar('success', 'Snippet created successfully');
+            onClose();
+        }
     })
     const {data: fileTypes} = useGetFileTypes();
 
     const handleCreateSnippet = async () => {
-        const newSnippet: CreateSnippet = {
-            name: snippetName,
-            content: code,
-            language: language,
-            extension: fileTypes?.find((f) => f.language === language)?.extension ?? "prs"
+        try {
+            const newSnippet: CreateSnippet = {
+                id: uuidv4(),
+                name: snippetName,
+                content: code,
+                language: language,
+                extension: fileTypes?.find((f: FileType) => f.language === language)?.extension ?? "ps"
+            }
+            await createSnippet(newSnippet);
+        } catch (err: any) {
+            console.error("Error creating snippet:", err);
+            createSnackbar('error', err?.message ?? 'Failed to create snippet');
         }
-        await createSnippet(newSnippet);
-        onClose();
     }
 
     useEffect(() => {
         if (defaultSnippet) {
             setCode(defaultSnippet?.content)
-            setLanguage(defaultSnippet?.language)
             setSnippetName(defaultSnippet?.name)
         }
     }, [defaultSnippet]);
@@ -63,7 +71,7 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
                                 sx={{display: 'flex', alignItems: 'center'}}>
                         Add Snippet
                     </Typography>
-                    <Button disabled={!snippetName || !code || !language || loadingSnippet} variant="contained"
+                    <Button disabled={!snippetName || !code || loadingSnippet} variant="contained"
                             disableRipple
                             sx={{boxShadow: 0}} onClick={handleCreateSnippet}>
                         <Box pr={1} display={"flex"} alignItems={"center"} justifyContent={"center"}>
@@ -82,29 +90,7 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
                 <Input onChange={e => setSnippetName(e.target.value)} value={snippetName} id="name"
                        sx={{width: '50%'}}/>
             </Box>
-            <Box sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px'
-            }}>
-                <InputLabel htmlFor="name">Language</InputLabel>
-                <Select
-                    labelId="demo-simple-select-label"
-                    id="demo-simple-select"
-                    value={language}
-                    label="Age"
-                    onChange={(e: SelectChangeEvent<string>) => setLanguage(e.target.value)}
-                    sx={{width: '50%'}}
-                >
-                    {
-                        fileTypes?.map(x => (
-                            <MenuItem data-testid={`menu-option-${x.language}`} key={x.language}
-                                      value={x.language}>{capitalize((x.language))}</MenuItem>
-                        ))
-                    }
-                </Select>
-            </Box>
-            <InputLabel>Code Snippet</InputLabel>
+            <InputLabel>Code Snippet (PrintScript)</InputLabel>
             <Box width={"100%"} sx={{
                 backgroundColor: 'black', color: 'white', borderRadius: "8px",
             }}>
