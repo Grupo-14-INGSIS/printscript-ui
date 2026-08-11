@@ -160,7 +160,7 @@ export class ApiSnippetOperations implements SnippetOperations {
 
     // Métodos no implementados (placeholders)
     getFileTypes(): Promise<FileType[]> {
-        return Promise.resolve([{ language: "printscript", extension: "prs", version: "1.1" }]);
+        return Promise.resolve([{ language: "printscript", extension: "ps", version: "1.1" }]);
     }
     getTestCases(snippetId: string): Promise<string[]> {
         return this.request<string[]>(`/api/v1/snippets/${snippetId}/tests`);

@@ -26,7 +26,7 @@ describe('Home', () => {
         name: req.body.name,
         language: req.body.language,
         content: '', // App receives only metadata
-        extension: 'prs'
+        extension: 'ps'
       };
       // Use the fake store's createSnippet method to add it to the mock data
       fakeSnippetStore.createSnippet(snippetDataFromRequest); // Store metadata
@@ -55,7 +55,7 @@ describe('Home', () => {
 
     first10Snippets.should('have.length.greaterThan', 0)
     // There are 3 initial snippets in fakeSnippetStore
-    first10Snippets.should('have.length', fakeSnippetStore.listSnippetDescriptors().length);
+    first10Snippets.should('have.length', fakeSnippetStore.listSnippetDescriptorsp().length);
   })
 
   it('Can creat snippet find snippets by name', () => {

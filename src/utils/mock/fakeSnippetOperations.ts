@@ -58,7 +58,7 @@ export class FakeSnippetOperations implements SnippetOperations {
     }
 
     getFileTypes(): Promise<FileType[]> {
-        return Promise.resolve([{ language: "printscript", extension: "prs", version: "1.1" }]);
+        return Promise.resolve([{ language: "printscript", extension: "ps", version: "1.1" }]);
     }
 
     getTestCases(_snippetId: string): Promise<string[]> {
