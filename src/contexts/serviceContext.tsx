@@ -2,9 +2,15 @@ import React, { createContext, useContext, useMemo, useCallback } from 'react';
 import { useAuth0, GetTokenSilentlyOptions } from '@auth0/auth0-react';
 import { ApiSnippetOperations } from '../services/api';
 import { RunnerService } from '../services/runnerService';
+import { SnippetOperations } from '../utils/snippetOperations';
+import { FakeSnippetOperations } from '../utils/mock/fakeSnippetOperations';
+import { FakeSnippetStore } from '../utils/mock/fakeSnippetStore';
+
+export const fakeStore = new FakeSnippetStore();
+export const fakeOperations = new FakeSnippetOperations(fakeStore);
 
 interface ServiceContextType {
-    apiService: ApiSnippetOperations;
+    apiService: SnippetOperations;
     runnerService: RunnerService;
 }
 
@@ -25,8 +31,9 @@ export const ServiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const getAccessToken = useCallback((options?: GetTokenSilentlyOptions) => getAccessTokenSilently(options), [getAccessTokenSilently]);
 
     const services = useMemo(() => {
+        const isMock = import.meta.env.VITE_USE_MOCK === 'true';
         return {
-            apiService: new ApiSnippetOperations(getAccessToken),
+            apiService: isMock ? fakeOperations : new ApiSnippetOperations(getAccessToken),
             runnerService: new RunnerService(getAccessToken),
         };
     }, [getAccessToken]);

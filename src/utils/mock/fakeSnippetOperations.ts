@@ -57,6 +57,10 @@ export class FakeSnippetOperations implements SnippetOperations {
         });
     }
 
+    getSharedUsers(_snippetId: string): Promise<any[]> {
+        return Promise.resolve([]);
+    }
+
     getFileTypes(): Promise<FileType[]> {
         return Promise.resolve([{ language: "printscript", extension: "ps", version: "1.1" }]);
     }

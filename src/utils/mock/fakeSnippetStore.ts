@@ -7,28 +7,101 @@ export class FakeSnippetStore {
     public snippets: Snippet[] = [
         {
             id: "1",
-            name: "Test Snippet 1",
+            name: "Calculadora Basica",
             language: "printscript",
-            author: "user1",
-            content: "println(\"Hello from Snippet 1\");",
+            author: "user1@ing.com",
+            content: "let a: number = 10;\nlet b: number = 20;\nlet total: number = a + b;\nprintln(\"El resultado de la suma es:\");\nprintln(total);",
+            extension: "ps",
+            compliance: "compliant"
+        },
+        {
+            id: "2",
+            name: "Calculadora Avanzada",
+            language: "printscript",
+            author: "user2@ing.com",
+            content: "const base: number = 100;\nconst rate: number = 1.21;\nlet total: number = base * rate;\nif (total > 100) {\n    println(\"Monto supera el limite base\");\n} else {\n    println(\"Monto dentro del rango\");\n}",
+            extension: "ps",
+            compliance: "compliant"
+        },
+        {
+            id: "3",
+            name: "Calculadora Descuento",
+            language: "printscript",
+            author: "user1@ing.com",
+            content: "let precio: number = 500;\nlet descuento: number = 50;\nlet precioFinal: number = precio - descuento;\nprintln(\"Precio final con descuento:\");\nprintln(precioFinal);",
+            extension: "ps",
+            compliance: "not-compliant"
+        },
+        {
+            id: "4",
+            name: "Calculadora Impuestos",
+            language: "printscript",
+            author: "admin@ing.com",
+            content: "const ingreso: number = 1500;\nlet impuesto: number = 0;\nif (ingreso > 1000) {\n    impuesto = ingreso * 0.15;\n} else {\n    impuesto = ingreso * 0.05;\n}\nprintln(\"Impuesto calculado:\");\nprintln(impuesto);",
             extension: "ps",
             compliance: "pending"
         },
         {
-            id: "2",
-            name: "Test Snippet 2",
+            id: "5",
+            name: "Calculadora Financiera",
             language: "printscript",
-            author: "user2",
-            content: "println(\"Hello from Snippet 2\");",
+            author: "user3@ing.com",
+            content: "let capital: number = 10000;\nconst interes: number = 0.05;\nlet ganancia: number = capital * interes;\nprintln(\"Ganancia estimada de la inversion:\");\nprintln(ganancia);",
+            extension: "ps",
+            compliance: "failed"
+        },
+        {
+            id: "6",
+            name: "Hola Mundo",
+            language: "printscript",
+            author: "user1@ing.com",
+            content: "let mensaje: string = \"Hola, bienvenido a PrintScript!\";\nprintln(mensaje);",
+            extension: "ps",
+            compliance: "compliant"
+        },
+        {
+            id: "7",
+            name: "Validacion Edad",
+            language: "printscript",
+            author: "user2@ing.com",
+            content: "let edad: number = 20;\nif (edad >= 18) {\n    println(\"Usuario es mayor de edad\");\n} else {\n    println(\"Usuario es menor de edad\");\n}",
+            extension: "ps",
+            compliance: "compliant"
+        },
+        {
+            id: "8",
+            name: "Format Cadena",
+            language: "printscript",
+            author: "user3@ing.com",
+            content: "let nombre: string = \"Juan\";\nlet apellido: string = \"Perez\";\nprintln(\"Nombre completo:\");\nprintln(nombre);\nprintln(apellido);",
             extension: "ps",
             compliance: "pending"
         },
+        {
+            id: "9",
+            name: "Operaciones Matematicas",
+            language: "printscript",
+            author: "admin@ing.com",
+            content: "let x: number = 15;\nlet y: number = 3;\nprintln(\"Multiplicacion:\");\nprintln(x * y);\nprintln(\"Division:\");\nprintln(x / y);",
+            extension: "ps",
+            compliance: "compliant"
+        },
+        {
+            id: "10",
+            name: "Sistema Notificaciones",
+            language: "printscript",
+            author: "user1@ing.com",
+            content: "const canal: string = \"Email\";\nlet activo: boolean = true;\nif (activo) {\n    println(\"Enviando notificacion por canal:\");\n    println(canal);\n}",
+            extension: "ps",
+            compliance: "compliant"
+        }
     ];
 
     listSnippetDescriptors(page: number = 0, pageSize: number = 10, snippetName?: string): PaginatedSnippets {
         let filteredSnippets = this.snippets;
         if (snippetName) {
-            filteredSnippets = this.snippets.filter(s => s.name.includes(snippetName));
+            const query = snippetName.toLowerCase();
+            filteredSnippets = this.snippets.filter(s => s.name.toLowerCase().includes(query));
         }
         const start = page * pageSize;
         const end = start + pageSize;

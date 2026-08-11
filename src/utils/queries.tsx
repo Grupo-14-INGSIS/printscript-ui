@@ -2,7 +2,7 @@ import {useMutation, UseMutationResult, useQuery} from 'react-query';
 import {Rule} from "../types/Rule.ts";
 import {FileType} from "../types/FileType.ts";
 import {CreateSnippet, PaginatedSnippets, Snippet} from "./snippet.ts";
-import { useServices } from '../contexts/serviceContext.tsx';
+import { useServices, fakeStore } from '../contexts/serviceContext.tsx';
 import { useAuth0 } from '@auth0/auth0-react';
 import { StartExecutionResponse, ExecutionStatus, SharedUser } from '../types/runner.ts';
 
@@ -138,6 +138,10 @@ export const useGetSnippetById = (id: string | null) => {
         ['snippet', id],
         async () => {
             if (!id) throw new Error("No snippet ID provided");
+
+            if (import.meta.env.VITE_USE_MOCK === 'true') {
+                return fakeStore.getSnippetData(id);
+            }
 
             // Fire both requests in parallel
             const metadataPromise = apiService.getSnippetData(id);
