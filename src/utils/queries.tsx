@@ -1,133 +1,113 @@
 import {useMutation, UseMutationResult, useQuery} from 'react-query';
-import {SnippetOperations} from "./snippetOperations.ts";
-import { ApiSnippetOperations } from "../services/api.ts";
-import { TestCase } from "../types/TestCase.ts";
-import { Rule } from "../types/Rule.ts";
+import {Rule} from "../types/Rule.ts";
 import {FileType} from "../types/FileType.ts";
-import {CreateSnippet, PaginatedSnippets, Snippet, UpdateSnippet} from "./snippet.ts";
-import {PaginatedUsers} from "./users.ts";
-// import {useAuth0} from "@auth0/auth0-react";
-// import {useEffect} from "react";
-
-
-export const useSnippetsOperations = () => {
-  // const {getAccessTokenSilently} = useAuth0()
-  //
-  // useEffect(() => {
-  //     getAccessTokenSilently()
-  //         .then(token => {
-  //             console.log(token)
-  //         })
-  //         .catch(error => console.error(error));
-  // });
-
-  const snippetOperations: SnippetOperations = new ApiSnippetOperations(/* getAccessTokenSilently */); // Using the real API implementation
-
-  return snippetOperations
-}
-
-export const usePostTestCase = () => {
-  const snippetOperations = useSnippetsOperations()
-
-  return useMutation<TestCase, Error, Partial<TestCase>>(
-      (tc) => snippetOperations.postTestCase(tc)
-  );
-};
-
-export type TestCaseResult = "success" | "fail"
-
-export const useTestSnippet = () => {
-  const snippetOperations = useSnippetsOperations()
-
-  return useMutation<TestCaseResult, Error, Partial<TestCase>>(
-      (tc) => snippetOperations.testSnippet(tc)
-  )
-}
+import {CreateSnippet, PaginatedSnippets, Snippet} from "./snippet.ts";
+import { useServices } from '../contexts/serviceContext.tsx';
+import { useAuth0 } from '@auth0/auth0-react';
+import { StartExecutionResponse, ExecutionStatus, SharedUser } from '../types/runner.ts';
 
 export const useGetFormatRules = () => {
-  const snippetOperations = useSnippetsOperations()
-
-  return useQuery<Rule[], Error>('formatRules', () => snippetOperations.getFormatRules());
+  const { apiService } = useServices();
+  return useQuery<Rule[], Error>('formatRules', () => apiService.getFormatRules());
 }
 
 export const useModifyFormatRules = ({onSuccess}: {onSuccess: () => void}) => {
-  const snippetOperations = useSnippetsOperations()
-
-  return useMutation<Rule[], Error, Rule[]>(
-      rule => snippetOperations.modifyFormatRule(rule),
+  const { apiService } = useServices();
+  return useMutation<void, Error, Rule[]>(
+      (rule: Rule[]) => apiService.modifyFormatRule(rule),
       {onSuccess}
   );
 }
 
 export const useGetLintingRules = () => {
-  const snippetOperations = useSnippetsOperations()
-
-  return useQuery<Rule[], Error>('lintingRules', () => snippetOperations.getLintingRules());
+  const { apiService } = useServices();
+  return useQuery<Rule[], Error>('lintingRules', () => apiService.getLintingRules());
 }
 
 export const useModifyLintingRules = ({onSuccess}: {onSuccess: () => void}) => {
-  const snippetOperations = useSnippetsOperations()
-
-  return useMutation<Rule[], Error, Rule[]>(
-      rule => snippetOperations.modifyLintingRule(rule),
+  const { apiService } = useServices();
+  return useMutation<void, Error, Rule[]>(
+      (rule: Rule[]) => apiService.modifyLintingRule(rule),
       {onSuccess}
   );
 }
 
 // --- Hooks for execution endpoints ---
 
-export const useGetExecutionStatus = (executionId: string) => {
-  const snippetOperations = useSnippetsOperations();
-  return useQuery(['executionStatus', executionId], () => snippetOperations.getExecutionStatus(executionId), {
-    enabled: !!executionId, // Only run if executionId is available
-  });
+export const useStartExecution = ({onSuccess}: {onSuccess: (data: StartExecutionResponse) => void}): UseMutationResult<StartExecutionResponse, Error, {
+    snippetId: string;
+    environment: Record<string, string>;
+    version: string;
+}> => {
+    const { apiService } = useServices();
+    return useMutation<StartExecutionResponse, Error, { snippetId: string; environment: Record<string, string>; version: string }>(
+        ({snippetId, environment, version}: { snippetId: string; environment: Record<string, string>; version: string }) => apiService.startExecution(snippetId, environment, version),
+        {onSuccess}
+    );
 };
 
-export const usePostExecutionInput = () => {
-  const snippetOperations = useSnippetsOperations();
-  return useMutation<never, Error, { executionId: string; input: never }>(
-      ({ executionId, input }) => snippetOperations.postExecutionInput(executionId, input)
-  );
+
+export const useSendInput = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<void, Error, {
+    snippetId: string;
+    input: string;
+}> => {
+    const { apiService } = useServices();
+    return useMutation<void, Error, { snippetId: string; input: string }>(
+        ({snippetId, input}: { snippetId: string; input: string }) => apiService.sendInput(snippetId, input),
+        {onSuccess}
+    );
 };
 
-export const useDeleteExecution = ({onSuccess}: {onSuccess: () => void}) => {
-  const snippetOperations = useSnippetsOperations();
-  return useMutation<void, Error, string>(
-      (executionId) => snippetOperations.deleteExecution(executionId),
-      { onSuccess }
-  );
+export const useCancelExecution = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<void, Error, {snippetId: string, userId: string}> => {
+    const { apiService } = useServices();
+    const { user } = useAuth0();
+    return useMutation<void, Error, {snippetId: string, userId: string}>(
+        ({snippetId, userId}: {snippetId: string, userId: string}) => {
+            if (!user?.sub) throw new Error("User not authenticated");
+            return apiService.cancelExecution(snippetId, userId);
+        },
+        {onSuccess}
+    );
+};
+
+export const useGetExecutionStatus = (snippetId: string, executionId: string) => {
+    const { apiService } = useServices();
+    return useQuery<ExecutionStatus, Error>(['executionStatus', snippetId, executionId], () => apiService.getExecutionStatus(snippetId, executionId), {
+        enabled: !!executionId && !!snippetId, // Only run if both snippetId and executionId are available
+        refetchInterval: 1000, // Refetch every second to get updates
+    });
 };
 
 export const useGetFileTypes = () => {
-    const snippetOperations = useSnippetsOperations()
-
-    return useQuery<FileType[], Error>('fileTypes', () => snippetOperations.getFileTypes());
+    const { apiService } = useServices();
+    return useQuery<FileType[], Error>('fileTypes', () => apiService.getFileTypes());
 }
 
-export const useCreateSnippet = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<Snippet, Error, CreateSnippet> => {
-    const snippetOperations = useSnippetsOperations()
+export const useCreateSnippet = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<void, Error, CreateSnippet> => {
+    const { runnerService } = useServices();
+    const { user } = useAuth0();
 
-    return useMutation<Snippet, Error, CreateSnippet>(createSnippet => snippetOperations.createSnippet(createSnippet), {onSuccess});
+    return useMutation<void, Error, CreateSnippet>(
+        async (snippet: CreateSnippet) => {
+            if (!user?.sub) throw new Error("User not authenticated");
+            await runnerService.createSnippet(snippet, user.sub);
+        },
+        {onSuccess}
+    );
 };
 
-export const useGetUsers = (name: string = "", page: number = 0, pageSize: number = 10) => {
-    const snippetOperations = useSnippetsOperations()
-
-    return useQuery<PaginatedUsers, Error>(['users',name,page,pageSize], () => snippetOperations.getUserFriends(name,page, pageSize));
-};
-
-export const useGetTestCases = () => {
-    const snippetOperations = useSnippetsOperations()
-
-    return useQuery<TestCase[] | undefined, Error>(['testCases'], () => snippetOperations.getTestCases(), {});
+export const useGetTestCases = (snippetId: string | null) => {
+    const { apiService } = useServices();
+    return useQuery<string[], Error>(['testCases', snippetId], () => apiService.getTestCases(snippetId!), {
+        enabled: !!snippetId,
+    });
 };
 
 export const useRemoveTestCase = ({onSuccess}: {onSuccess: () => void}) => {
-    const snippetOperations = useSnippetsOperations()
-
+    const { apiService } = useServices();
     return useMutation<string, Error, string>(
         ['removeTestCase'],
-        (id) => snippetOperations.removeTestCase(id),
+        (id: string) => apiService.removeTestCase(id),
         {
             onSuccess,
         }
@@ -135,10 +115,9 @@ export const useRemoveTestCase = ({onSuccess}: {onSuccess: () => void}) => {
 };
 
 export const useDeleteSnippet = ({onSuccess}: {onSuccess: () => void}) => {
-    const snippetOperations = useSnippetsOperations()
-
+    const { apiService } = useServices();
     return useMutation<string, Error, string>(
-        id => snippetOperations.deleteSnippet(id),
+        (id: string) => apiService.deleteSnippet(id),
         {
             onSuccess,
         }
@@ -146,46 +125,70 @@ export const useDeleteSnippet = ({onSuccess}: {onSuccess: () => void}) => {
 }
 
 export const useFormatSnippet = () => {
-    const snippetOperations = useSnippetsOperations()
-
+    const { apiService } = useServices();
     return useMutation<string, Error, string>(
-        snippetContent => snippetOperations.formatSnippet(snippetContent)
+        (snippetContent: string) => apiService.formatSnippet(snippetContent)
     );
 }
 
-export const useGetSnippetById = (id: string) => {
-    const snippetOperations = useSnippetsOperations()
+export const useGetSnippetById = (id: string | null) => {
+    const { apiService, runnerService } = useServices();
 
-    return useQuery<Snippet | undefined, Error>(['snippet', id], () => snippetOperations.getSnippetById(id), {
-        enabled: !!id, // This query will not execute until the id is provided
-    });
-};
+    return useQuery<Snippet, Error>(
+        ['snippet', id],
+        async () => {
+            if (!id) throw new Error("No snippet ID provided");
 
+            // Fire both requests in parallel
+            const metadataPromise = apiService.getSnippetData(id);
+            const contentPromise = runnerService.getSnippetContent(id);
 
-export const useShareSnippet = () => {
-    const snippetOperations = useSnippetsOperations()
+            const [metadata, content] = await Promise.all([metadataPromise, contentPromise]);
 
-    return useMutation<Snippet, Error, { snippetId: string; userId: string }>(
-        ({snippetId, userId}) => snippetOperations.shareSnippet(snippetId, userId)
+            // Combine the results
+            return {
+                id: metadata.snippetId,
+                name: metadata.name,
+                language: metadata.language,
+                content: content,
+                extension: 'ps', // Hardcode to .ps as requested
+                compliance: 'pending', // Default value
+                author: '', // Not provided by these endpoints
+            };
+        },
+        {
+            enabled: !!id,
+        }
     );
 };
 
+export const useShareSnippet = () => {
+    const { apiService } = useServices();
+    return useMutation<Snippet, Error, { snippetId: string; userId: string }>(
+        ({snippetId, userId}: { snippetId: string; userId: string }) => apiService.shareSnippet(snippetId, userId)
+    );
+};
 
-export const useUpdateSnippetById = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<Snippet, Error, {
+export const useGetSharedUsers = (snippetId: string) => {
+    const { apiService } = useServices();
+    return useQuery<SharedUser[], Error>(['sharedUsers', snippetId], () => apiService.getSharedUsers(snippetId), {
+        enabled: !!snippetId,
+    });
+};
+
+export const useUpdateSnippetContent = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<void, Error, {
     id: string;
-    updateSnippet: UpdateSnippet
+    content: string
 }> => {
-    const snippetOperations = useSnippetsOperations()
-
-    return useMutation<Snippet, Error, { id: string; updateSnippet: UpdateSnippet }>(
-        ({id, updateSnippet}) => snippetOperations.updateSnippetById(id, updateSnippet),{
+    const { runnerService } = useServices();
+    return useMutation<void, Error, { id: string; content: string }>(
+        ({id, content}: { id: string; content: string }) => runnerService.updateSnippetContent(id, content),{
             onSuccess,
         }
     );
 };
 
 export const useGetSnippets = (page: number = 0, pageSize: number = 10, snippetName?: string) => {
-    const snippetOperations = useSnippetsOperations()
-
-    return useQuery<PaginatedSnippets, Error>(['listSnippets', page,pageSize,snippetName], () => snippetOperations.listSnippetDescriptors(page, pageSize,snippetName));
+    const { apiService } = useServices();
+    return useQuery<PaginatedSnippets, Error>(['listSnippets', page,pageSize,snippetName], () => apiService.listSnippetDescriptors(page, pageSize,snippetName));
 };

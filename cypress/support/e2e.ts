@@ -25,20 +25,8 @@ Cypress.Commands.add('loginToAuth0', (username: string, password: string) => {
   })
   log.snapshot('before')
 
-  cy.session(
-      `auth0-${username}`,
-      () => {
-        loginViaAuth0Ui(username, password)
-      },
-      {
-        validate: () => {
-          // Validate presence of access token in localStorage.
-          cy.wrap(localStorage)
-              .invoke('getItem', 'authAccessToken')
-              .should('exist')
-        },
-      }
-  )
+  loginViaAuth0Ui(username, password)
+
   log.snapshot('after')
   log.end()
 })

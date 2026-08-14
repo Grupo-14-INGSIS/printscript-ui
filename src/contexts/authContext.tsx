@@ -6,7 +6,7 @@ interface User {
     name: string;
     email: string;
     picture?: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 interface AuthContextType {
@@ -42,8 +42,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             await authService.login({ username, password });
             const user = authService.getUser();
             setUser(user);
-        } catch (err: any) {
-            setError(err.message || 'Login failed');
+        } catch (err) {
+            if (err instanceof Error) {
+                setError(err.message || 'Login failed');
+            } else {
+                setError('An unknown error occurred during login.');
+            }
             throw err;
         } finally {
             setIsLoading(false);

@@ -6,6 +6,13 @@ module.exports = {
         'plugin:@typescript-eslint/recommended',
         'plugin:react-hooks/recommended',
     ],
-    ignorePatterns: ['dist', '.eslintrc.cjs'],
+    ignorePatterns: ['dist', '.eslintrc.cjs', 'cypress'],
     parser: '@typescript-eslint/parser',
+    plugins: ['@typescript-eslint'],
+    rules: {
+        '@typescript-eslint/no-unused-vars': [
+            'error',
+            { 'argsIgnorePattern': '^_' }
+        ]
+    }
 }
