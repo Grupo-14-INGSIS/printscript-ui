@@ -1,7 +1,7 @@
 import { SnippetOperations } from "../snippetOperations.ts";
 import { CreateSnippet, PaginatedSnippets, Snippet, SnippetData, UpdateSnippet } from "../snippet.ts";
 import { FileType } from "../../types/FileType.ts"; // Corrected path
-import { StartExecutionResponse, ExecutionStatus } from "../../types/runner.ts"; // Corrected path
+import { StartExecutionResponse, ExecutionStatus, SharedUser } from "../../types/runner.ts"; // Corrected path
 import { Rule } from "../../types/Rule.ts"; // Corrected path
 import { FakeSnippetStore } from "./fakeSnippetStore.ts"; // Added import for FakeSnippetStore
 import { formatPrintScriptCode } from "../formatter.ts";
@@ -38,6 +38,7 @@ export class FakeSnippetOperations implements SnippetOperations {
     }
 
     deleteSnippet(id: string): Promise<string> {
+        this.fakeStore.deleteSnippet(id);
         return Promise.resolve(id);
     }
 
@@ -55,6 +56,12 @@ export class FakeSnippetOperations implements SnippetOperations {
             extension: "ps",
             compliance: "pending"
         });
+    }
+
+    getSharedUsers(_snippetId: string): Promise<SharedUser[]> {
+        return Promise.resolve([
+            { id: "user1", email: "alice@example.com" }
+        ]);
     }
 
     getFileTypes(): Promise<FileType[]> {

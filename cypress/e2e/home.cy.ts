@@ -54,8 +54,8 @@ describe('Home', () => {
     const first10Snippets = cy.get('[data-testid="snippet-row"]')
 
     first10Snippets.should('have.length.greaterThan', 0)
-    // There are 3 initial snippets in fakeSnippetStore
-    first10Snippets.should('have.length', fakeSnippetStore.listSnippetDescriptorsp().length);
+    // There are initial snippets in fakeSnippetStore
+    first10Snippets.should('have.length', fakeSnippetStore.listSnippetDescriptors().snippets.length);
   })
 
   it('Can creat snippet find snippets by name', () => {

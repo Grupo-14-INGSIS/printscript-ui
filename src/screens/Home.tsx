@@ -13,7 +13,7 @@ const HomeScreen = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [snippetName, setSnippetName] = useState('');
   const [snippetId, setSnippetId] = useState<string | null>(null)
-  const {page, page_size, count, handleChangeCount} = usePaginationContext()
+  const {page, page_size, count, handleChangeCount, handleGoToPage} = usePaginationContext()
   const {data, isLoading} = useGetSnippets(page, page_size, snippetName)
 
   useEffect(() => {
@@ -36,17 +36,25 @@ const HomeScreen = () => {
         setSnippetName(
             searchTerm
         );
-      }, [searchTerm], 800
+        handleGoToPage(0);
+      }, [searchTerm], 350
   );
 
   const handleSearchSnippet = (snippetName: string) => {
     setSearchTerm(snippetName);
   };
 
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    setSnippetName('');
+    handleGoToPage(0);
+  };
+
   return (
       <>
         <SnippetTable loading={isLoading} handleClickSnippet={setSnippetId} snippets={data?.snippets}
-                      handleSearchSnippet={handleSearchSnippet}/>
+                      handleSearchSnippet={handleSearchSnippet} searchValue={searchTerm}
+                      onClearSearch={handleClearSearch}/>
         <Drawer open={!!snippetId} anchor={"right"} onClose={handleCloseModal}>
           {snippetId && <SnippetDetail handleCloseModal={handleCloseModal} id={snippetId}/>}
         </Drawer>
