@@ -14,6 +14,8 @@ export interface SnippetOperations {
 
     modifyLintingRule(newRules: Rule[], language?: string): Promise<void>
 
+    registerUser(email: string): Promise<void>
+
     createSnippet(createSnippet: CreateSnippet, userId?: string): Promise<void>
 
     getTestCases(snippetId: string): Promise<string[]>

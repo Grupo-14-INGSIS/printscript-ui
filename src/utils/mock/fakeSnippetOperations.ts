@@ -28,6 +28,10 @@ export class FakeSnippetOperations implements SnippetOperations {
     }
 
     // --- Snippets ---
+    registerUser(_email: string): Promise<void> {
+        return Promise.resolve();
+    }
+
     listSnippetDescriptors(page: number, pageSize: number, snippetName?: string): Promise<PaginatedSnippets> {
         return Promise.resolve(this.fakeStore.listSnippetDescriptors(page, pageSize, snippetName));
     }
