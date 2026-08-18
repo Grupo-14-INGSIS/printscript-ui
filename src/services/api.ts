@@ -122,11 +122,21 @@ export class ApiSnippetOperations implements SnippetOperations {
             compliance: 'pending', // Default value
         }));
 
+        let filteredSnippets = snippetsArray;
+        if (snippetName && snippetName.trim() !== "") {
+            const term = snippetName.trim().toLowerCase();
+            filteredSnippets = snippetsArray.filter(s => s.name.toLowerCase().includes(term));
+        }
+
+        const start = page * pageSize;
+        const end = start + pageSize;
+        const pagedSnippets = filteredSnippets.slice(start, end);
+
         return {
-            page: 1, // The API doesn't return pagination data, so mocking it.
-            page_size: snippetsArray.length,
-            count: snippetsArray.length,
-            snippets: snippetsArray,
+            page: page,
+            page_size: pageSize,
+            count: filteredSnippets.length,
+            snippets: pagedSnippets,
         };
     }
     
