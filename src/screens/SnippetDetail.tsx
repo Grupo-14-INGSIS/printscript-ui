@@ -4,21 +4,25 @@ import {highlight, languages} from "prismjs";
 import "prismjs/components/prism-clike";
 import "prismjs/components/prism-javascript";
 import "prismjs/themes/prism-okaidia.css";
-import {Alert, Box, CircularProgress, IconButton, Tooltip, Typography} from "@mui/material";
+import {Alert, Box, CircularProgress, IconButton, Tooltip, Typography, Select, MenuItem, FormControl, InputLabel} from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import {
-  useUpdateSnippetById
+  useUpdateSnippetContent, useStartExecution, useCancelExecution, useGetExecutionStatus
 } from "../utils/queries.tsx";
-import {useFormatSnippet, useGetSnippetById, useShareSnippet} from "../utils/queries.tsx";
+import {useFormatSnippet, useGetSnippetById} from "../utils/queries.tsx";
 import {Bòx} from "../components/snippet-table/SnippetBox.tsx";
-import {BugReport, Delete, Download, Save, Share} from "@mui/icons-material";
+import {BugReport, Delete, Download, Save, Share, PlayArrow, StopRounded} from "@mui/icons-material";
 import {ShareSnippetModal} from "../components/snippet-detail/ShareSnippetModal.tsx";
 import {TestSnippetModal} from "../components/snippet-test/TestSnippetModal.tsx";
 import {Snippet} from "../utils/snippet.ts";
 import {SnippetExecution} from "./SnippetExecution.tsx";
 import ReadMoreIcon from '@mui/icons-material/ReadMore';
 import {queryClient} from "../App.tsx";
-import {DeleteConfirmationModal} from "../components/snippet-detail/DeleteConfirmationModal.tsx";
+import { StartExecutionResponse } from "../types/runner.ts";
+import { useSnackbarContext } from "../contexts/snackbarContext.tsx";
+import { DeleteConfirmationModal } from "../components/snippet-detail/DeleteConfirmationModal.tsx";
+import { useAuth0 } from '@auth0/auth0-react';
+
 
 type SnippetDetailProps = {
   id: string;
@@ -34,7 +38,7 @@ const DownloadButton = ({snippet}: { snippet?: Snippet }) => {
       <IconButton sx={{
         cursor: "pointer"
       }}>
-        <a download={`${snippet.name}.${snippet.extension}`} target="_blank"
+        <a download={`${snippet.name}.ps`} target="_blank"
            rel="noreferrer" href={URL.createObjectURL(file)} style={{
           textDecoration: "none",
           color: "inherit",
@@ -50,21 +54,46 @@ const DownloadButton = ({snippet}: { snippet?: Snippet }) => {
 
 export const SnippetDetail = (props: SnippetDetailProps) => {
   const {id, handleCloseModal} = props;
+  const { user } = useAuth0();
   const [code, setCode] = useState(
       ""
   );
+  const [version, setVersion] = useState<string>("1.0");
   const [shareModalOppened, setShareModalOppened] = useState(false)
   const [deleteConfirmationModalOpen, setDeleteConfirmationModalOpen] = useState(false)
   const [testModalOpened, setTestModalOpened] = useState(false);
+  const [runSnippet, setRunSnippet] = useState(false);
+  const [executionId, setExecutionId] = useState<string | null>(null);
+  const [executionResult, setExecutionResult] = useState<StartExecutionResponse | null>(null);
+  const {createSnackbar} = useSnackbarContext();
 
   const {data: snippet, isLoading} = useGetSnippetById(id);
-  const {mutate: shareSnippet, isLoading: loadingShare} = useShareSnippet()
   const {mutate: formatSnippet, isLoading: isFormatLoading, data: formatSnippetData} = useFormatSnippet()
-  const {mutate: updateSnippet, isLoading: isUpdateSnippetLoading} = useUpdateSnippetById({onSuccess: () => queryClient.invalidateQueries(['snippet', id])})
+  const {mutate: updateSnippetContent, isLoading: isUpdateSnippetLoading} = useUpdateSnippetContent({onSuccess: () => queryClient.invalidateQueries(['snippet', id])})
+  const {mutateAsync: startExecution, isLoading: isStartingExecution} = useStartExecution({
+    onSuccess: (data) => {
+        setExecutionResult(data);
+        setExecutionId(id); 
+        setRunSnippet(false);
+    }
+  });
+  const {mutateAsync: cancelExecution, isLoading: isCancellingExecution} = useCancelExecution({
+    onSuccess: () => {
+        setExecutionId(null);
+        setExecutionResult(null);
+        setRunSnippet(false);
+    }
+  });
+
+  const {data: executionStatus} = useGetExecutionStatus(id, executionId || '');
 
   useEffect(() => {
     if (snippet) {
       setCode(snippet.content);
+      // Auto-detect 1.1 if code contains 1.1 syntax
+      if (snippet.content.includes("const ") || snippet.content.includes("if ") || snippet.content.includes("readInput") || snippet.content.includes("readEnv")) {
+        setVersion("1.1");
+      }
     }
   }, [snippet]);
 
@@ -74,10 +103,28 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
     }
   }, [formatSnippetData])
 
-
-  async function handleShareSnippet(userId: string) {
-    shareSnippet({snippetId: id, userId})
-  }
+  const handleRunToggle = async () => {
+    if (runSnippet && executionId) { // If running, cancel
+        await cancelExecution({snippetId: id, userId: user?.sub || ''});
+    } else { // If not running, start
+        try {
+            if (snippet && snippet.content !== code) {
+                await updateSnippetContent({id: id, content: code});
+            }
+            const detectedVersion = (code.includes("const ") || code.includes("if ") || code.includes("readInput") || code.includes("readEnv")) ? "1.1" : version;
+            const res = await startExecution({
+                snippetId: id,
+                environment: {}, // Default empty environment
+                version: detectedVersion,
+            });
+            setExecutionResult(res);
+        } catch (err: unknown) {
+            console.error("Execution error:", err);
+            const message = err instanceof Error ? err.message : 'Execution failed';
+            createSnackbar('error', message);
+        }
+    }
+  };
 
   return (
       <Box p={4} minWidth={'60vw'}>
@@ -90,7 +137,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
             <CircularProgress/>
           </>) : <>
             <Typography variant="h4" fontWeight={"bold"}>{snippet?.name ?? "Snippet"}</Typography>
-            <Box display="flex" flexDirection="row" gap="8px" padding="8px">
+            <Box display="flex" flexDirection="row" gap="8px" padding="8px" alignItems="center">
               <Tooltip title={"Share"}>
                 <IconButton onClick={() => setShareModalOppened(true)}>
                   <Share/>
@@ -102,11 +149,24 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                 </IconButton>
               </Tooltip>
               <DownloadButton snippet={snippet}/>
-              {/*<Tooltip title={runSnippet ? "Stop run" : "Run"}>*/}
-              {/*  <IconButton onClick={() => setRunSnippet(!runSnippet)}>*/}
-              {/*    {runSnippet ? <StopRounded/> : <PlayArrow/>}*/}
-              {/*  </IconButton>*/}
-              {/*</Tooltip>*/}
+              <FormControl size="small" sx={{ minWidth: 90 }}>
+                <InputLabel id="version-select-label">Version</InputLabel>
+                <Select
+                  labelId="version-select-label"
+                  value={version}
+                  label="Version"
+                  onChange={(e) => setVersion(e.target.value)}
+                  size="small"
+                >
+                  <MenuItem value="1.0">1.0</MenuItem>
+                  <MenuItem value="1.1">1.1</MenuItem>
+                </Select>
+              </FormControl>
+              <Tooltip title={runSnippet ? "Stop run" : "Run"}>
+                <IconButton onClick={handleRunToggle} disabled={isStartingExecution || isCancellingExecution || !snippet}>
+                  {runSnippet ? <StopRounded/> : <PlayArrow/>}
+                </IconButton>
+              </Tooltip>
               {/* TODO: we can implement a live mode*/}
               <Tooltip title={"Format"}>
                 <IconButton onClick={() => formatSnippet(code)} disabled={isFormatLoading}>
@@ -114,7 +174,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                 </IconButton>
               </Tooltip>
               <Tooltip title={"Save changes"}>
-                <IconButton color={"primary"} onClick={() => updateSnippet({id: id, updateSnippet: {content: code}})} disabled={isUpdateSnippetLoading || snippet?.content === code} >
+                <IconButton color={"primary"} onClick={() => updateSnippetContent({id: id, content: code})} disabled={isUpdateSnippetLoading || snippet?.content === code} >
                   <Save />
                 </IconButton>
               </Tooltip>
@@ -142,16 +202,17 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
             </Box>
             <Box pt={1} flex={1} marginTop={2}>
               <Alert severity="info">Output</Alert>
-              <SnippetExecution />
+              <SnippetExecution snippetId={id} executionId={executionId} executionStatus={executionResult || executionStatus} />
             </Box>
           </>
         }
-        <ShareSnippetModal loading={loadingShare || isLoading} open={shareModalOppened}
+        <ShareSnippetModal open={shareModalOppened}
                            onClose={() => setShareModalOppened(false)}
-                           onShare={handleShareSnippet}/>
+                           snippetId={id}/>
         <TestSnippetModal open={testModalOpened} onClose={() => setTestModalOpened(false)}/>
-        <DeleteConfirmationModal open={deleteConfirmationModalOpen} onClose={() => setDeleteConfirmationModalOpen(false)} id={snippet?.id ?? ""} setCloseDetails={handleCloseModal} />
+        <DeleteConfirmationModal open={deleteConfirmationModalOpen} onClose={() => setDeleteConfirmationModalOpen(false)} id={id} setCloseDetails={handleCloseModal} />
       </Box>
   );
 }
+
 

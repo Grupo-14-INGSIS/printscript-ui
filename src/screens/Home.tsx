@@ -11,17 +11,16 @@ import useDebounce from "../hooks/useDebounce.ts";
 const HomeScreen = () => {
   const {id: paramsId} = useParams<{ id: string }>();
   const [searchTerm, setSearchTerm] = useState('');
-  const [snippetName, setSnippetName] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 350);
   const [snippetId, setSnippetId] = useState<string | null>(null)
-  const {page, page_size, count, handleChangeCount} = usePaginationContext()
-  const {data, isLoading} = useGetSnippets(page, page_size, snippetName)
+  const {page, page_size, count, handleChangeCount, handleGoToPage} = usePaginationContext()
+  const {data, isLoading} = useGetSnippets(page, page_size, debouncedSearchTerm)
 
   useEffect(() => {
-    if (data?.count && data.count != count) {
+    if (data?.count !== undefined && data.count !== count) {
       handleChangeCount(data.count)
     }
   }, [count, data?.count, handleChangeCount]);
-
 
   useEffect(() => {
     if (paramsId) {
@@ -29,24 +28,25 @@ const HomeScreen = () => {
     }
   }, [paramsId]);
 
-  const handleCloseModal = () => setSnippetId(null)
+  useEffect(() => {
+    handleGoToPage(0);
+  }, [debouncedSearchTerm, handleGoToPage]);
 
-  // DeBounce Function
-  useDebounce(() => {
-        setSnippetName(
-            searchTerm
-        );
-      }, [searchTerm], 800
-  );
+  const handleCloseModal = () => setSnippetId(null)
 
   const handleSearchSnippet = (snippetName: string) => {
     setSearchTerm(snippetName);
   };
 
+  const handleClearSearch = () => {
+    setSearchTerm('');
+  };
+
   return (
       <>
         <SnippetTable loading={isLoading} handleClickSnippet={setSnippetId} snippets={data?.snippets}
-                      handleSearchSnippet={handleSearchSnippet}/>
+                      handleSearchSnippet={handleSearchSnippet} searchValue={searchTerm}
+                      onClearSearch={handleClearSearch}/>
         <Drawer open={!!snippetId} anchor={"right"} onClose={handleCloseModal}>
           {snippetId && <SnippetDetail handleCloseModal={handleCloseModal} id={snippetId}/>}
         </Drawer>

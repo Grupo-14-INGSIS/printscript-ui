@@ -6,12 +6,6 @@ permissions:
 
 on:
   push:
-    branches:
-      - develop
-  pull_request:
-    branches:
-      - develop
-  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -48,7 +42,7 @@ jobs:
           echo "VITE_AUTH0_CLIENT_ID=${{ secrets.VITE_AUTH0_CLIENT_ID }}" >> .env
           echo "VITE_AUTH0_AUDIENCE=${{ secrets.VITE_AUTH0_AUDIENCE }}" >> .env
           echo "VITE_AUTH0_REALM=${{ secrets.VITE_AUTH0_REALM }}" >> .env
-          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> .env
+          echo "VITE_BACKEND_URL=${{ secrets.VITE_BACKEND_URL }}" >> .env
 
       - name: Build production bundle
         run: npm run build
@@ -61,11 +55,10 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ghcr.io/grupo-14-ingsis/printscript-ui:develop
+        run: |
+          branch=${GITHUB_REF_NAME}
+          docker build -t ghcr.io/grupo-14-ingsis/printscript-ui:$branch .
+          docker push ghcr.io/grupo-14-ingsis/printscript-ui:$branch
 
   dispatch-to-infrastructure:
     needs: build
@@ -73,16 +66,17 @@ jobs:
     steps:
       - name: Notify infrastructure of new image
         run: |
+          branch=${GITHUB_REF_NAME}
           curl -L \
             -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.PAT }}" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/Grupo-14-INGSIS/SnippetSearcher-Infrastructure/dispatches \
-            -d '{
-              "event_type": "new-image-ready",
-              "client_payload": {
-                "environment": "develop",
-                "service": "snippetsearcher-ui"
+            -d "{
+              \"event_type\": \"new-image-ready\",
+              \"client_payload\": {
+                \"environment\": \"$branch\",
+                \"service\": \"snippetsearcher-ui\"
               }
-            }'
+            }"

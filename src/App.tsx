@@ -1,57 +1,38 @@
 import './App.css';
-import {RouterProvider} from "react-router";
-import {createBrowserRouter} from "react-router-dom";
+import {createBrowserRouter, RouterProvider} from "react-router-dom";
 import HomeScreen from "./screens/Home.tsx";
 import {QueryClient, QueryClientProvider} from "react-query";
 import RulesScreen from "./screens/Rules.tsx";
-import {LoginForm} from "./components/common/LoginForm.tsx";
-import {ProtectedRoute} from "./components/common/ProtectedRoute.tsx";
-import {AuthProvider} from "./contexts/authContext.tsx";
-import {SignupForm} from "./components/common/SignUpForm.tsx";
-// import {withAuthenticationRequired} from "@auth0/auth0-react";
+import LoginScreen from "./screens/Login.tsx"; // Import LoginScreen
+import ProtectedRoute from "./components/common/ProtectedRoute.tsx"; // Import ProtectedRoute
+
+export const queryClient = new QueryClient()
 
 const router = createBrowserRouter([
     {
-        path: "/login",
-        element : <LoginForm />
-    },
-    {
-        path: "/signup",
-        element : <SignupForm />
-    },
-    {
         path: "/",
-        element: (
-            <ProtectedRoute>
-                <HomeScreen />
-            </ProtectedRoute>
-        )
-
+        element: <ProtectedRoute><HomeScreen /></ProtectedRoute> // Wrap with ProtectedRoute
     },
     {
         path: '/rules',
-        element: (
-            <ProtectedRoute>
-                <RulesScreen />
-            </ProtectedRoute>
-        )
-
+        element: <ProtectedRoute><RulesScreen /></ProtectedRoute> // Wrap with ProtectedRoute
+    },
+    {
+        path: '/snippets/:id',
+        element: <ProtectedRoute><HomeScreen /></ProtectedRoute> // Wrap with ProtectedRoute
+    },
+    {
+        path: '/login', // New login route
+        element: <LoginScreen />
     }
-    //agregamos el resto de nuestras rutas
 ]);
 
-export const queryClient = new QueryClient()
 const App = () => {
     return (
-        <AuthProvider>
         <QueryClientProvider client={queryClient}>
             <RouterProvider router={router}/>
         </QueryClientProvider>
-            </AuthProvider>
     );
 }
 
-// To enable Auth0 integration change the following line
 export default App;
-// for this one:
-// export default withAuthenticationRequired(App);
