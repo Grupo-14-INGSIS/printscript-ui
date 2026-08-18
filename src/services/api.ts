@@ -101,6 +101,13 @@ export class ApiSnippetOperations implements SnippetOperations {
     
     // --- Snippets ---
 
+    registerUser(email: string): Promise<void> {
+        return this.request<void>('/api/v1/users', {
+            method: 'PUT',
+            body: JSON.stringify({ email })
+        });
+    }
+
     async listSnippetDescriptors(page: number, pageSize: number, snippetName?: string): Promise<PaginatedSnippets> {
         const params = new URLSearchParams({
             page: String(page),

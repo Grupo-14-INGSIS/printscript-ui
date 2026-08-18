@@ -9,13 +9,13 @@ import { ServiceProvider, useServices } from "./contexts/serviceContext.tsx";
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, user } = useAuth0();
-    const { runnerService } = useServices();
+    const { apiService } = useServices();
     useEffect(() => {
         const registerUserOnAuth = async () => {
             if (isAuthenticated && user?.sub) {
                 try {
-                    console.log('Registering user:', user.sub);
-                    await runnerService.registerUser(user.sub);
+                    console.log('Registering user:', user.sub, user.email);
+                    await apiService.registerUser(user.email || user.name || user.nickname || "Unknown User");
                     console.log('User registered successfully');
                 } catch (error) {
                     // We can ignore 409 conflict, it just means the user already exists.
@@ -26,7 +26,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
             }
         };
         registerUserOnAuth();
-    }, [isAuthenticated, user, runnerService]);
+    }, [isAuthenticated, user, apiService]);
     return <>{children}</>;
 }
 
