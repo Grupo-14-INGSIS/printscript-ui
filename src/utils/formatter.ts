@@ -3,7 +3,7 @@ import { Rule } from "../types/Rule.ts";
 export function formatPrintScriptCode(code: string, rules: Rule[]): string {
     if (!code) return code;
 
-    const ruleMap: Record<string, string | number | boolean | null | undefined> = {};
+    const ruleMap: Record<string, any> = {};
     for (const rule of rules) {
         ruleMap[rule.name] = rule.value !== undefined ? rule.value : rule.isActive;
     }
@@ -32,7 +32,7 @@ export function formatPrintScriptCode(code: string, rules: Rule[]): string {
         if (line.trim().startsWith("println") && i > 0) {
             const printlnLineBreaks = typeof ruleMap['line-breaks-before-println'] === 'number'
                 ? ruleMap['line-breaks-before-println']
-                : parseInt(<string>ruleMap['line-breaks-before-println'] || '1', 10);
+                : parseInt(ruleMap['line-breaks-before-println'] || '1', 10);
 
             if (printlnLineBreaks > 1 && formattedLines.length > 0 && formattedLines[formattedLines.length - 1].trim() !== "") {
                 formattedLines.push("");

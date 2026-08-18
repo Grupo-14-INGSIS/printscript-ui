@@ -50,10 +50,9 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
                 extension: fileTypes?.find((f: FileType) => f.language === language)?.extension ?? "ps"
             }
             await createSnippet(newSnippet);
-        } catch (err: unknown) {
+        } catch (err: any) {
             console.error("Error creating snippet:", err);
-            const message = err instanceof Error ? err.message : 'Failed to create snippet';
-            createSnackbar('error', message);
+            createSnackbar('error', err?.message ?? 'Failed to create snippet');
         }
     }
 
