@@ -35,7 +35,7 @@ export class FakeRunnerService {
 const globalFakeStore = new FakeSnippetStore();
 
 // Flag to toggle between mock services and backend services
-const USE_MOCK_SERVICES = true;
+const USE_MOCK_SERVICES = false;
 
 interface ServiceContextType {
     apiService: SnippetOperations;
