@@ -7,28 +7,119 @@ export class FakeSnippetStore {
     public snippets: Snippet[] = [
         {
             id: "1",
-            name: "Test Snippet 1",
+            name: "Hello World",
             language: "printscript",
-            author: "user1",
-            content: "println(\"Hello from Snippet 1\");",
+            author: "alice",
+            content: "println(\"Hello, World!\");",
+            extension: "ps",
+            compliance: "compliant"
+        },
+        {
+            id: "2",
+            name: "Fibonacci Sequence",
+            language: "printscript",
+            author: "bob",
+            content: "let a: number = 0;\nlet b: number = 1;\nprintln(a);\nprintln(b);",
             extension: "ps",
             compliance: "pending"
         },
         {
-            id: "2",
-            name: "Test Snippet 2",
+            id: "3",
+            name: "Basic Calculator",
             language: "printscript",
-            author: "user2",
-            content: "println(\"Hello from Snippet 2\");",
+            author: "charlie",
+            content: "let x: number = 10;\nlet y: number = 20;\nlet sum: number = x + y;\nprintln(sum);",
+            extension: "ps",
+            compliance: "compliant"
+        },
+        {
+            id: "4",
+            name: "String Concatenation",
+            language: "printscript",
+            author: "alice",
+            content: "let greeting: string = \"Hello\";\nlet name: string = \"INGSIS\";\nprintln(greeting + \" \" + name);",
+            extension: "ps",
+            compliance: "compliant"
+        },
+        {
+            id: "5",
+            name: "Bubble Sort Algorithm",
+            language: "printscript",
+            author: "david",
+            content: "println(\"Sorting elements...\");",
+            extension: "ps",
+            compliance: "failed"
+        },
+        {
+            id: "6",
+            name: "Math Functions Demo",
+            language: "printscript",
+            author: "bob",
+            content: "let pi: number = 3.14159;\nlet r: number = 5;\nlet area: number = pi * r * r;\nprintln(area);",
+            extension: "ps",
+            compliance: "compliant"
+        },
+        {
+            id: "7",
+            name: "PrintScript 1.1 Features",
+            language: "printscript",
+            author: "eva",
+            content: "const version: string = \"1.1\";\nprintln(version);",
             extension: "ps",
             compliance: "pending"
         },
+        {
+            id: "8",
+            name: "Even or Odd Checker",
+            language: "printscript",
+            author: "charlie",
+            content: "let n: number = 7;\nif (n % 2 == 0) {\n  println(\"even\");\n} else {\n  println(\"odd\");\n}",
+            extension: "ps",
+            compliance: "not-compliant"
+        },
+        {
+            id: "9",
+            name: "Variable Scope Demo",
+            language: "printscript",
+            author: "alice",
+            content: "let outer: string = \"global scope\";\nprintln(outer);",
+            extension: "ps",
+            compliance: "compliant"
+        },
+        {
+            id: "10",
+            name: "Binary Search Tree",
+            language: "printscript",
+            author: "david",
+            content: "println(\"BST structure initialized\");",
+            extension: "ps",
+            compliance: "pending"
+        },
+        {
+            id: "11",
+            name: "JSON Parser Helper",
+            language: "printscript",
+            author: "eva",
+            content: "println(\"Parsing JSON config\");",
+            extension: "ps",
+            compliance: "compliant"
+        },
+        {
+            id: "12",
+            name: "Custom Logger Utility",
+            language: "printscript",
+            author: "frank",
+            content: "println(\"[LOG] Application started successfully\");",
+            extension: "ps",
+            compliance: "compliant"
+        }
     ];
 
     listSnippetDescriptors(page: number = 0, pageSize: number = 10, snippetName?: string): PaginatedSnippets {
         let filteredSnippets = this.snippets;
-        if (snippetName) {
-            filteredSnippets = this.snippets.filter(s => s.name.includes(snippetName));
+        if (snippetName && snippetName.trim() !== "") {
+            const term = snippetName.trim().toLowerCase();
+            filteredSnippets = this.snippets.filter(s => s.name.toLowerCase().includes(term));
         }
         const start = page * pageSize;
         const end = start + pageSize;
@@ -45,13 +136,19 @@ export class FakeSnippetStore {
     createSnippet(createSnippet: CreateSnippet): Snippet {
         const newSnippet: Snippet = {
             ...createSnippet,
+            id: createSnippet.id || String(Date.now()),
             author: "mockUser", // Mock author
-            content: "", // Initial empty content
-            extension: "ps", // Default extension
+            content: createSnippet.content || "", // Initial content
+            extension: createSnippet.extension || "ps", // Default extension
             compliance: "pending", // Default compliance
         };
         this.snippets.push(newSnippet);
         return newSnippet;
+    }
+
+    deleteSnippet(id: string): string {
+        this.snippets = this.snippets.filter(s => s.id !== id);
+        return id;
     }
 
     getSnippetData(id: string): Snippet {
@@ -68,7 +165,6 @@ export class FakeSnippetStore {
     modifyLintingRule(_newRules: Rule[]): void {} // Prefixed
     removeTestCase(id: string): string { return id; }
     formatSnippet(snippet: string): string { return snippet; }
-    deleteSnippet(id: string): string { return id; }
     shareSnippet(_snippetId: string, _userId: string): Snippet { return this.snippets[0]; } // Prefixed
     updateSnippetContent(_id: string, _content: string): void {}
 

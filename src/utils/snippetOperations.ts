@@ -1,7 +1,7 @@
 import {Rule} from "../types/Rule.ts";
 import {FileType} from "../types/FileType.ts";
 import {CreateSnippet, PaginatedSnippets, Snippet, SnippetData} from "./snippet.ts";
-import { StartExecutionResponse, ExecutionStatus } from "../types/runner.ts"; // Import new types
+import { StartExecutionResponse, ExecutionStatus, SharedUser } from "../types/runner.ts"; // Import new types
 
 export interface SnippetOperations {
     getFormatRules(): Promise<Rule[]>
@@ -28,7 +28,9 @@ export interface SnippetOperations {
 
     shareSnippet(snippetId: string,userId: string): Promise<Snippet>
 
-    listSnippetDescriptors(page: number,pageSize: number,sippetName?: string): Promise<PaginatedSnippets>
+    getSharedUsers(snippetId: string): Promise<SharedUser[]>
+
+    listSnippetDescriptors(page: number,pageSize: number,snippetName?: string): Promise<PaginatedSnippets>
 
     // --- Execution Methods ---
     startExecution(snippetId: string, environment: Record<string, string>, version: string): Promise<StartExecutionResponse>

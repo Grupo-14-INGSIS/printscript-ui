@@ -16,7 +16,7 @@ import {
 } from "@mui/material";
 import {AddSnippetModal} from "./AddSnippetModal.tsx";
 import {useRef, useState} from "react";
-import {Add, Search} from "@mui/icons-material";
+import {Add, Clear, Search} from "@mui/icons-material";
 import {LoadingSnippetRow, SnippetRow} from "./SnippetRow.tsx";
 import {CreateSnippetWithLang, getFileLanguage, Snippet} from "../../utils/snippet.ts";
 import {usePaginationContext} from "../../contexts/paginationContext.tsx";
@@ -28,10 +28,12 @@ type SnippetTableProps = {
   snippets?: Snippet[];
   loading: boolean;
   handleSearchSnippet: (snippetName: string) => void;
+  searchValue?: string;
+  onClearSearch?: () => void;
 }
 
 export const SnippetTable = (props: SnippetTableProps) => {
-  const {snippets, handleClickSnippet, loading,handleSearchSnippet} = props;
+  const {snippets, handleClickSnippet, loading, handleSearchSnippet, searchValue = '', onClearSearch} = props;
   const [addModalOpened, setAddModalOpened] = useState(false);
   const [popoverMenuOpened, setPopoverMenuOpened] = useState(false)
   const [snippet, setSnippet] = useState<CreateSnippetWithLang | undefined>()
@@ -78,16 +80,23 @@ export const SnippetTable = (props: SnippetTableProps) => {
   return (
       <>
         <Box display="flex" flexDirection="row" justifyContent="space-between">
-          <Box sx={{background: 'white', width: '30%', display: 'flex'}}>
+          <Box sx={{background: 'white', width: '30%', display: 'flex', alignItems: 'center', px: 1, borderRadius: 1}}>
             <InputBase
                 sx={{ml: 1, flex: 1}}
-                placeholder="Search FileType"
+                placeholder="Search snippet by name..."
                 inputProps={{'aria-label': 'search'}}
+                value={searchValue}
                 onChange={e => handleSearchSnippet(e.target.value)}
             />
-            <IconButton type="button" sx={{p: '10px'}} aria-label="search">
-              <Search/>
-            </IconButton>
+            {searchValue && onClearSearch ? (
+              <IconButton type="button" sx={{p: '5px'}} aria-label="clear" onClick={onClearSearch}>
+                <Clear fontSize="small" />
+              </IconButton>
+            ) : (
+              <IconButton type="button" sx={{p: '10px'}} aria-label="search">
+                <Search/>
+              </IconButton>
+            )}
           </Box>
           <Button ref={popoverRef} variant="contained" disableRipple sx={{boxShadow: 0}}
                   onClick={() => setPopoverMenuOpened(true)}>
@@ -114,10 +123,18 @@ export const SnippetTable = (props: SnippetTableProps) => {
             ) : (
                 <>
                   {
-                      snippets && snippets.map((snippet) => (
-                          <SnippetRow data-testid={"snippet-row"}
-                                      onClick={() => handleClickSnippet(snippet.id)} key={snippet.id} snippet={snippet}/>
-                      ))
+                      snippets && snippets.length > 0 ? (
+                        snippets.map((snippet) => (
+                            <SnippetRow data-testid={"snippet-row"}
+                                        onClick={() => handleClickSnippet(snippet.id)} key={snippet.id} snippet={snippet}/>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <StyledTableCell colSpan={4} align="center" sx={{py: 4, color: 'text.secondary'}}>
+                            No snippets found
+                          </StyledTableCell>
+                        </TableRow>
+                      )
                   }
                 </>
             )
