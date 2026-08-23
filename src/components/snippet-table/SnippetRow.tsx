@@ -1,6 +1,20 @@
-import {alpha, Skeleton, styled, TableRow, TableRowProps} from "@mui/material";
+import {alpha, Chip, Skeleton, styled, TableRow, TableRowProps} from "@mui/material";
 import {StyledTableCell} from "./SnippetTable.tsx";
-import {Snippet} from "../../utils/snippet.ts";
+import {ComplianceEnum, Snippet} from "../../utils/snippet.ts";
+
+const getComplianceChip = (compliance: ComplianceEnum) => {
+  switch (compliance) {
+    case 'compliant':
+      return <Chip label="Compliant" color="success" size="small" variant="outlined" sx={{ fontWeight: 500 }} />;
+    case 'not-compliant':
+      return <Chip label="Not Compliant" color="error" size="small" variant="outlined" sx={{ fontWeight: 500 }} />;
+    case 'failed':
+      return <Chip label="Failed" color="error" size="small" sx={{ fontWeight: 500 }} />;
+    case 'pending':
+    default:
+      return <Chip label="Pending" color="warning" size="small" variant="outlined" sx={{ fontWeight: 500 }} />;
+  }
+};
 
 const StyledTableRow = styled(TableRow)(({theme}) => ({
   backgroundColor: 'white',
@@ -41,7 +55,7 @@ export const SnippetRow = ({snippet, onClick, ...props}: { snippet: Snippet, onC
         <StyledTableCell>{snippet.name}</StyledTableCell>
         <StyledTableCell>{snippet.language}</StyledTableCell>
         <StyledTableCell>{snippet.author}</StyledTableCell>
-        <StyledTableCell>{snippet.compliance}</StyledTableCell>
+        <StyledTableCell>{getComplianceChip(snippet.compliance)}</StyledTableCell>
       </StyledTableRow>
   )
 }

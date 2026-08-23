@@ -1,7 +1,7 @@
 import { Rule } from "../types/Rule.ts";
 import { BACKEND_URL } from "../utils/constants.ts";
 import { SnippetOperations } from "../utils/snippetOperations.ts";
-import { CreateSnippet, PaginatedSnippets, Snippet, SnippetData, UpdateSnippet } from "../utils/snippet.ts";
+import { ComplianceEnum, CreateSnippet, PaginatedSnippets, Snippet, SnippetData, SnippetFilters, UpdateSnippet } from "../utils/snippet.ts";
 import { FileType } from "../types/FileType.ts";
 import { GetTokenSilentlyOptions } from "@auth0/auth0-react";
 import { StartExecutionResponse, ExecutionStatus, CancelExecutionRequest, SharedUser } from '../types/runner.ts';
@@ -108,31 +108,63 @@ export class ApiSnippetOperations implements SnippetOperations {
         });
     }
 
-    async listSnippetDescriptors(page: number, pageSize: number, snippetName?: string): Promise<PaginatedSnippets> {
+    async listSnippetDescriptors(page: number, pageSize: number, filters?: SnippetFilters): Promise<PaginatedSnippets> {
         const params = new URLSearchParams({
             page: String(page),
             pageSize: String(pageSize),
         });
-        if (snippetName) {
-            params.append('name', snippetName);
+        if (filters?.name && filters.name.trim() !== '') {
+            params.append('name', filters.name.trim());
+        }
+        if (filters?.authorRelation && filters.authorRelation !== 'all') {
+            params.append('relation', filters.authorRelation);
+        }
+        if (filters?.language && filters.language !== 'all') {
+            params.append('language', filters.language);
+        }
+        if (filters?.compliance && filters.compliance !== 'all') {
+            params.append('compliance', filters.compliance);
+        }
+        if (filters?.sortBy) {
+            params.append('sortBy', filters.sortBy);
+            params.append('sortOrder', filters.sortOrder ?? 'asc');
         }
         
-        const snippetsMap = await this.request<Record<string, { name: string; language: string; permission: string }>>(`/api/v1/snippets?${params.toString()}`);
+        const snippetsMap = await this.request<Record<string, { name: string; language: string; permission?: string; author?: string; compliance?: ComplianceEnum; status?: string }>>(`/api/v1/snippets?${params.toString()}`);
 
         const snippetsArray: Snippet[] = Object.entries(snippetsMap).map(([id, details]) => ({
             id: id,
             name: details.name,
             language: details.language,
-            author: details.permission, // Using role as author for now
+            author: details.author || details.permission || '', // Support permission or author
             content: '', // This endpoint does not provide content
             extension: '', // This endpoint does not provide extension
-            compliance: 'pending', // Default value
+            compliance: (details.compliance || details.status || 'pending') as ComplianceEnum,
         }));
 
         let filteredSnippets = snippetsArray;
-        if (snippetName && snippetName.trim() !== "") {
-            const term = snippetName.trim().toLowerCase();
-            filteredSnippets = snippetsArray.filter(s => s.name.toLowerCase().includes(term));
+        if (filters?.name && filters.name.trim() !== "") {
+            const term = filters.name.trim().toLowerCase();
+            filteredSnippets = filteredSnippets.filter(s => s.name.toLowerCase().includes(term));
+        }
+        if (filters?.authorRelation && filters.authorRelation !== 'all') {
+            filteredSnippets = filteredSnippets.filter(s => s.author.toLowerCase() === filters.authorRelation?.toLowerCase());
+        }
+        if (filters?.language && filters.language !== 'all') {
+            filteredSnippets = filteredSnippets.filter(s => s.language.toLowerCase() === filters.language?.toLowerCase());
+        }
+        if (filters?.compliance && filters.compliance !== 'all') {
+            filteredSnippets = filteredSnippets.filter(s => s.compliance === filters.compliance);
+        }
+
+        if (filters?.sortBy) {
+            const sortBy = filters.sortBy;
+            const sortOrder = filters.sortOrder === 'desc' ? -1 : 1;
+            filteredSnippets.sort((a, b) => {
+                const valA = (a[sortBy] || '').toString().toLowerCase();
+                const valB = (b[sortBy] || '').toString().toLowerCase();
+                return valA.localeCompare(valB) * sortOrder;
+            });
         }
 
         const start = page * pageSize;

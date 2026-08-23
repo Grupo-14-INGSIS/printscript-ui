@@ -40,6 +40,20 @@ export type PaginatedSnippets = Pagination & {
   snippets: Snippet[]
 }
 
+export type AuthorRelationFilter = 'all' | 'owner' | 'shared';
+export type ComplianceFilter = 'all' | ComplianceEnum;
+export type SortOrder = 'asc' | 'desc';
+export type SnippetSortBy = 'name' | 'language' | 'author' | 'compliance';
+
+export type SnippetFilters = {
+    name?: string;
+    authorRelation?: AuthorRelationFilter;
+    language?: string;
+    compliance?: ComplianceFilter;
+    sortBy?: SnippetSortBy;
+    sortOrder?: SortOrder;
+};
+
 export const getFileLanguage = (fileTypes: FileType[], fileExt?: string) => {
   return fileExt && fileTypes?.find(x => x.extension == fileExt)
 }

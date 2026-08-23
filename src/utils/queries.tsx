@@ -1,7 +1,7 @@
 import {useMutation, UseMutationResult, useQuery} from 'react-query';
 import {Rule} from "../types/Rule.ts";
 import {FileType} from "../types/FileType.ts";
-import {CreateSnippet, PaginatedSnippets, Snippet} from "./snippet.ts";
+import {CreateSnippet, PaginatedSnippets, Snippet, SnippetFilters} from "./snippet.ts";
 import { useServices } from '../contexts/serviceContext.tsx';
 import { useAuth0 } from '@auth0/auth0-react';
 import { StartExecutionResponse, ExecutionStatus, SharedUser } from '../types/runner.ts';
@@ -188,7 +188,7 @@ export const useUpdateSnippetContent = ({onSuccess}: {onSuccess: () => void}): U
     );
 };
 
-export const useGetSnippets = (page: number = 0, pageSize: number = 10, snippetName?: string) => {
+export const useGetSnippets = (page: number = 0, pageSize: number = 10, filters?: SnippetFilters) => {
     const { apiService } = useServices();
-    return useQuery<PaginatedSnippets, Error>(['listSnippets', page,pageSize,snippetName], () => apiService.listSnippetDescriptors(page, pageSize,snippetName));
+    return useQuery<PaginatedSnippets, Error>(['listSnippets', page, pageSize, filters], () => apiService.listSnippetDescriptors(page, pageSize, filters));
 };
