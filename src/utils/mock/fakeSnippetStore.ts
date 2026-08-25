@@ -1,4 +1,4 @@
-import {CreateSnippet, PaginatedSnippets, Snippet} from "../snippet.ts";
+import {CreateSnippet, PaginatedSnippets, Snippet, SnippetFilters} from "../snippet.ts";
 import {FileType} from "../../types/FileType.ts"; // Corrected path
 import {StartExecutionResponse, ExecutionStatus, ExecutionEventType} from "../../types/runner.ts"; // Corrected path
 import {Rule} from "../../types/Rule.ts";
@@ -115,12 +115,32 @@ export class FakeSnippetStore {
         }
     ];
 
-    listSnippetDescriptors(page: number = 0, pageSize: number = 10, snippetName?: string): PaginatedSnippets {
-        let filteredSnippets = this.snippets;
-        if (snippetName && snippetName.trim() !== "") {
-            const term = snippetName.trim().toLowerCase();
-            filteredSnippets = this.snippets.filter(s => s.name.toLowerCase().includes(term));
+    listSnippetDescriptors(page: number = 0, pageSize: number = 10, filters?: SnippetFilters): PaginatedSnippets {
+        let filteredSnippets = [...this.snippets];
+        if (filters?.name && filters.name.trim() !== "") {
+            const term = filters.name.trim().toLowerCase();
+            filteredSnippets = filteredSnippets.filter(s => s.name.toLowerCase().includes(term));
         }
+        if (filters?.authorRelation && filters.authorRelation !== 'all') {
+            filteredSnippets = filteredSnippets.filter(s => s.author.toLowerCase() === filters.authorRelation?.toLowerCase());
+        }
+        if (filters?.language && filters.language !== 'all') {
+            filteredSnippets = filteredSnippets.filter(s => s.language.toLowerCase() === filters.language?.toLowerCase());
+        }
+        if (filters?.compliance && filters.compliance !== 'all') {
+            filteredSnippets = filteredSnippets.filter(s => s.compliance === filters.compliance);
+        }
+
+        if (filters?.sortBy) {
+            const sortBy = filters.sortBy;
+            const sortOrder = filters.sortOrder === 'desc' ? -1 : 1;
+            filteredSnippets.sort((a, b) => {
+                const valA = (a[sortBy] || '').toString().toLowerCase();
+                const valB = (b[sortBy] || '').toString().toLowerCase();
+                return valA.localeCompare(valB) * sortOrder;
+            });
+        }
+
         const start = page * pageSize;
         const end = start + pageSize;
         const pagedSnippets = filteredSnippets.slice(start, end);

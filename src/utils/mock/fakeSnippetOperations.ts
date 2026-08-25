@@ -1,5 +1,5 @@
 import { SnippetOperations } from "../snippetOperations.ts";
-import { CreateSnippet, PaginatedSnippets, Snippet, SnippetData, UpdateSnippet } from "../snippet.ts";
+import { CreateSnippet, PaginatedSnippets, Snippet, SnippetData, SnippetFilters, UpdateSnippet } from "../snippet.ts";
 import { FileType } from "../../types/FileType.ts"; // Corrected path
 import { StartExecutionResponse, ExecutionStatus, SharedUser } from "../../types/runner.ts"; // Corrected path
 import { Rule } from "../../types/Rule.ts"; // Corrected path
@@ -32,8 +32,8 @@ export class FakeSnippetOperations implements SnippetOperations {
         return Promise.resolve();
     }
 
-    listSnippetDescriptors(page: number, pageSize: number, snippetName?: string): Promise<PaginatedSnippets> {
-        return Promise.resolve(this.fakeStore.listSnippetDescriptors(page, pageSize, snippetName));
+    listSnippetDescriptors(page: number, pageSize: number, filters?: SnippetFilters): Promise<PaginatedSnippets> {
+        return Promise.resolve(this.fakeStore.listSnippetDescriptors(page, pageSize, filters));
     }
 
     createSnippet(createSnippet: CreateSnippet): Promise<void> {

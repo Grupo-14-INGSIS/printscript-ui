@@ -1,6 +1,6 @@
 import {Rule} from "../types/Rule.ts";
 import {FileType} from "../types/FileType.ts";
-import {CreateSnippet, PaginatedSnippets, Snippet, SnippetData} from "./snippet.ts";
+import {CreateSnippet, PaginatedSnippets, Snippet, SnippetData, SnippetFilters} from "./snippet.ts";
 import { StartExecutionResponse, ExecutionStatus, SharedUser } from "../types/runner.ts"; // Import new types
 
 export interface SnippetOperations {
@@ -32,7 +32,7 @@ export interface SnippetOperations {
 
     getSharedUsers(snippetId: string): Promise<SharedUser[]>
 
-    listSnippetDescriptors(page: number,pageSize: number,snippetName?: string): Promise<PaginatedSnippets>
+    listSnippetDescriptors(page: number,pageSize: number,filters?: SnippetFilters): Promise<PaginatedSnippets> //el nama pasa a estar en filters
 
     // --- Execution Methods ---
     startExecution(snippetId: string, environment: Record<string, string>, version: string): Promise<StartExecutionResponse>
