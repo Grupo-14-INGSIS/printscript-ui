@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import {
+    Alert,
     Box,
     Button,
     CircularProgress,
@@ -30,17 +31,20 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
     const language = "printscript"; // Hardcoded language
     const [code, setCode] = useState(defaultSnippet?.content ?? "");
     const [snippetName, setSnippetName] = useState(defaultSnippet?.name ?? "");
+    const [validationError, setValidationError] = useState<string | null>(null);
     const {createSnackbar} = useSnackbarContext();
     const {mutateAsync: createSnippet, isLoading: loadingSnippet} = useCreateSnippet({
         onSuccess: () => {
             queryClient.invalidateQueries('listSnippets');
             createSnackbar('success', 'Snippet created successfully');
+            setValidationError(null);
             onClose();
         }
     })
     const {data: fileTypes} = useGetFileTypes();
 
     const handleCreateSnippet = async () => {
+        setValidationError(null);
         try {
             const newSnippet: CreateSnippet = {
                 id: uuidv4(),
@@ -53,16 +57,24 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
         } catch (err: unknown) {
             console.error("Error creating snippet:", err);
             const message = err instanceof Error ? err.message : 'Failed to create snippet';
+            setValidationError(message);
             createSnackbar('error', message);
         }
     }
 
     useEffect(() => {
         if (defaultSnippet) {
-            setCode(defaultSnippet?.content)
-            setSnippetName(defaultSnippet?.name)
+            setCode(defaultSnippet?.content);
+            setSnippetName(defaultSnippet?.name);
+            setValidationError(null);
         }
     }, [defaultSnippet]);
+
+    useEffect(() => {
+        if (!open) {
+            setValidationError(null);
+        }
+    }, [open]);
 
     return (
         <ModalWrapper open={open} onClose={onClose}>
@@ -91,6 +103,11 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
                 <Input onChange={e => setSnippetName(e.target.value)} value={snippetName} id="name"
                        sx={{width: '50%'}}/>
             </Box>
+            {validationError && (
+                <Alert severity="error" sx={{ whiteSpace: 'pre-wrap', my: 1 }}>
+                    {validationError}
+                </Alert>
+            )}
             <InputLabel>Code Snippet (PrintScript)</InputLabel>
             <Box width={"100%"} sx={{
                 backgroundColor: 'black', color: 'white', borderRadius: "8px",
