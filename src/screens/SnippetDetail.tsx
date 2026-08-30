@@ -4,16 +4,17 @@ import {highlight, languages} from "prismjs";
 import "prismjs/components/prism-clike";
 import "prismjs/components/prism-javascript";
 import "prismjs/themes/prism-okaidia.css";
-import {Alert, Box, CircularProgress, IconButton, Tooltip, Typography, Select, MenuItem, FormControl, InputLabel} from "@mui/material";
+import {Alert, Box, CircularProgress, IconButton, Tooltip, Typography, Select, MenuItem, FormControl, InputLabel, Tab, Tabs} from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import {
-  useUpdateSnippetContent, useStartExecution, useCancelExecution, useGetExecutionStatus
+  useUpdateSnippetContent, useStartExecution, useCancelExecution, useGetExecutionStatus, useGetTestCases
 } from "../utils/queries.tsx";
 import {useFormatSnippet, useGetSnippetById} from "../utils/queries.tsx";
 import {Bòx} from "../components/snippet-table/SnippetBox.tsx";
-import {BugReport, Delete, Download, Save, Share, PlayArrow, StopRounded, UploadFile} from "@mui/icons-material";
+import {BugReport, Delete, Download, Save, Share, PlayArrow, StopRounded, UploadFile, Terminal} from "@mui/icons-material";
 import {ShareSnippetModal} from "../components/snippet-detail/ShareSnippetModal.tsx";
 import {TestSnippetModal} from "../components/snippet-test/TestSnippetModal.tsx";
+import {SnippetTestManager} from "../components/snippet-test/SnippetTestManager.tsx";
 import {Snippet} from "../utils/snippet.ts";
 import {SnippetExecution} from "./SnippetExecution.tsx";
 import ReadMoreIcon from '@mui/icons-material/ReadMore';
@@ -64,12 +65,14 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   const [shareModalOppened, setShareModalOppened] = useState(false)
   const [deleteConfirmationModalOpen, setDeleteConfirmationModalOpen] = useState(false)
   const [testModalOpened, setTestModalOpened] = useState(false);
+  const [bottomTab, setBottomTab] = useState<number>(0);
   const [runSnippet, setRunSnippet] = useState(false);
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [executionResult, setExecutionResult] = useState<StartExecutionResponse | null>(null);
   const {createSnackbar} = useSnackbarContext();
 
   const {data: snippet, isLoading} = useGetSnippetById(id);
+  const {data: testCases} = useGetTestCases(id);
   const {mutate: formatSnippet, isLoading: isFormatLoading, data: formatSnippetData} = useFormatSnippet()
   const {mutateAsync: updateSnippetContent, isLoading: isUpdateSnippetLoading} = useUpdateSnippetContent({
     onSuccess: () => {
@@ -182,8 +185,11 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                   <Share/>
                 </IconButton>
               </Tooltip>
-              <Tooltip title={"Test"}>
-                <IconButton onClick={() => setTestModalOpened(true)}>
+              <Tooltip title={"Tests"}>
+                <IconButton onClick={() => {
+                  setBottomTab(1);
+                  setTestModalOpened(true);
+                }}>
                   <BugReport/>
                 </IconButton>
               </Tooltip>
@@ -256,16 +262,45 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                 />
               </Bòx>
             </Box>
-            <Box pt={1} flex={1} marginTop={2}>
-              <Alert severity="info">Output</Alert>
-              <SnippetExecution snippetId={id} executionId={executionId} executionStatus={executionResult || executionStatus} />
+            <Box pt={2} flex={1} marginTop={2}>
+              <Tabs
+                value={bottomTab}
+                onChange={(_, val) => setBottomTab(val)}
+                sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}
+              >
+                <Tab label="Output" icon={<Terminal fontSize="small" />} iconPosition="start" />
+                <Tab
+                  label={`Tests ${testCases && testCases.length > 0 ? `(${testCases.length})` : ''}`}
+                  icon={<BugReport fontSize="small" />}
+                  iconPosition="start"
+                />
+              </Tabs>
+
+              {bottomTab === 0 && (
+                <Box>
+                  <Alert severity="info" sx={{ mb: 1 }}>Output</Alert>
+                  <SnippetExecution snippetId={id} executionId={executionId} executionStatus={executionResult || executionStatus} />
+                </Box>
+              )}
+
+              {bottomTab === 1 && (
+                <Box bgcolor="white" p={2} borderRadius={2} border="1px solid #e0e0e0">
+                  <SnippetTestManager snippetId={id} snippetName={snippet?.name} version={version} />
+                </Box>
+              )}
             </Box>
           </>
         }
         <ShareSnippetModal open={shareModalOppened}
                            onClose={() => setShareModalOppened(false)}
                            snippetId={id}/>
-        <TestSnippetModal open={testModalOpened} onClose={() => setTestModalOpened(false)}/>
+        <TestSnippetModal
+          open={testModalOpened}
+          onClose={() => setTestModalOpened(false)}
+          snippetId={id}
+          snippetName={snippet?.name}
+          version={version}
+        />
         <DeleteConfirmationModal open={deleteConfirmationModalOpen} onClose={() => setDeleteConfirmationModalOpen(false)} id={id} setCloseDetails={handleCloseModal} />
       </Box>
   );

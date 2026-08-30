@@ -5,6 +5,7 @@ import { ComplianceEnum, CreateSnippet, PaginatedSnippets, Snippet, SnippetData,
 import { FileType } from "../types/FileType.ts";
 import { GetTokenSilentlyOptions } from "@auth0/auth0-react";
 import { StartExecutionResponse, ExecutionStatus, CancelExecutionRequest, SharedUser } from '../types/runner.ts';
+import { TestCase, CreateTestCase, TestCaseResult } from '../types/TestCase.ts';
 import { formatPrintScriptCode } from "../utils/formatter.ts";
 
 export class ApiSnippetOperations implements SnippetOperations {
@@ -211,11 +212,62 @@ export class ApiSnippetOperations implements SnippetOperations {
     getFileTypes(): Promise<FileType[]> {
         return Promise.resolve([{ language: "printscript", extension: "ps", version: "1.1" }]);
     }
-    getTestCases(snippetId: string): Promise<string[]> {
-        return this.request<string[]>(`/api/v1/snippets/${snippetId}/tests`);
+    async getTestCases(snippetId: string): Promise<TestCase[]> {
+        const testsMap = await this.request<Record<string, {
+            testId: string;
+            snippetId: string;
+            input?: string[];
+            output?: string[];
+            version?: string;
+            environment?: Record<string, string>;
+            name?: string;
+        }>>(`/api/v1/snippets/${snippetId}/tests`);
+
+        return Object.entries(testsMap || {}).map(([id, test]) => ({
+            id: test.testId || id,
+            name: test.name || `Test ${id.substring(0, 8)}`,
+            snippetId: test.snippetId || snippetId,
+            input: test.input || [],
+            output: test.output || [],
+            expected: test.output || [],
+            version: test.version || '1.0',
+            environment: test.environment || {},
+        }));
     }
-    removeTestCase(_id: string): Promise<string> {
-        throw new Error("Method not implemented.");
+
+    createTestCase(snippetId: string, testCase: CreateTestCase): Promise<{ testId: string }> {
+        return this.request<{ testId: string }>(`/api/v1/snippets/${snippetId}/tests`, {
+            method: 'POST',
+            body: JSON.stringify({
+                input: testCase.input,
+                expected: testCase.expected,
+                version: testCase.version || '1.0',
+                environment: testCase.environment || {},
+            }),
+        });
+    }
+
+    async removeTestCase(snippetIdOrTestId: string, testId?: string): Promise<string> {
+        if (testId) {
+            await this.deleteTestCase(snippetIdOrTestId, testId);
+            return testId;
+        }
+        await this.request<void>(`/api/v1/tests/${snippetIdOrTestId}`, {
+            method: 'DELETE',
+        });
+        return snippetIdOrTestId;
+    }
+
+    deleteTestCase(snippetId: string, testId: string): Promise<void> {
+        return this.request<void>(`/api/v1/snippets/${snippetId}/tests/${testId}`, {
+            method: 'DELETE',
+        });
+    }
+
+    runTestCase(snippetId: string, testId: string): Promise<TestCaseResult> {
+        return this.request<TestCaseResult>(`/api/v1/snippets/${snippetId}/tests/${testId}`, {
+            method: 'PUT',
+        });
     }
     async formatSnippet(snippet: string): Promise<string> {
         try {
