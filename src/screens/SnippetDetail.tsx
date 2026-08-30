@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import Editor from "react-simple-code-editor";
 import {highlight, languages} from "prismjs";
 import "prismjs/components/prism-clike";
@@ -11,7 +11,7 @@ import {
 } from "../utils/queries.tsx";
 import {useFormatSnippet, useGetSnippetById} from "../utils/queries.tsx";
 import {Bòx} from "../components/snippet-table/SnippetBox.tsx";
-import {BugReport, Delete, Download, Save, Share, PlayArrow, StopRounded} from "@mui/icons-material";
+import {BugReport, Delete, Download, Save, Share, PlayArrow, StopRounded, UploadFile} from "@mui/icons-material";
 import {ShareSnippetModal} from "../components/snippet-detail/ShareSnippetModal.tsx";
 import {TestSnippetModal} from "../components/snippet-test/TestSnippetModal.tsx";
 import {Snippet} from "../utils/snippet.ts";
@@ -55,10 +55,12 @@ const DownloadButton = ({snippet}: { snippet?: Snippet }) => {
 export const SnippetDetail = (props: SnippetDetailProps) => {
   const {id, handleCloseModal} = props;
   const { user } = useAuth0();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [code, setCode] = useState(
       ""
   );
   const [version, setVersion] = useState<string>("1.0");
+  const [updateError, setUpdateError] = useState<string | null>(null);
   const [shareModalOppened, setShareModalOppened] = useState(false)
   const [deleteConfirmationModalOpen, setDeleteConfirmationModalOpen] = useState(false)
   const [testModalOpened, setTestModalOpened] = useState(false);
@@ -69,7 +71,13 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
 
   const {data: snippet, isLoading} = useGetSnippetById(id);
   const {mutate: formatSnippet, isLoading: isFormatLoading, data: formatSnippetData} = useFormatSnippet()
-  const {mutate: updateSnippetContent, isLoading: isUpdateSnippetLoading} = useUpdateSnippetContent({onSuccess: () => queryClient.invalidateQueries(['snippet', id])})
+  const {mutateAsync: updateSnippetContent, isLoading: isUpdateSnippetLoading} = useUpdateSnippetContent({
+    onSuccess: () => {
+      queryClient.invalidateQueries(['snippet', id]);
+      createSnackbar('success', 'Snippet updated successfully');
+      setUpdateError(null);
+    }
+  });
   const {mutateAsync: startExecution, isLoading: isStartingExecution} = useStartExecution({
     onSuccess: (data) => {
         setExecutionResult(data);
@@ -90,6 +98,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   useEffect(() => {
     if (snippet) {
       setCode(snippet.content);
+      setUpdateError(null);
       // Auto-detect 1.1 if code contains 1.1 syntax
       if (snippet.content.includes("const ") || snippet.content.includes("if ") || snippet.content.includes("readInput") || snippet.content.includes("readEnv")) {
         setVersion("1.1");
@@ -99,9 +108,39 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
 
   useEffect(() => {
     if (formatSnippetData) {
-      setCode(formatSnippetData)
+      setCode(formatSnippetData);
+      setUpdateError(null);
     }
   }, [formatSnippetData])
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const content = await file.text();
+      setCode(content);
+      setUpdateError(null);
+      createSnackbar('info', `Loaded content from ${file.name}`);
+    } catch (err) {
+      console.error("Error reading file:", err);
+      createSnackbar('error', 'Failed to read file content');
+    } finally {
+      event.target.value = '';
+    }
+  };
+
+  const handleSaveSnippet = async () => {
+    setUpdateError(null);
+    try {
+      await updateSnippetContent({id: id, content: code});
+    } catch (err: unknown) {
+      console.error("Error saving snippet:", err);
+      const message = err instanceof Error ? err.message : 'Failed to update snippet';
+      setUpdateError(message);
+      createSnackbar('error', message);
+    }
+  };
 
   const handleRunToggle = async () => {
     if (runSnippet && executionId) { // If running, cancel
@@ -109,7 +148,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
     } else { // If not running, start
         try {
             if (snippet && snippet.content !== code) {
-                await updateSnippetContent({id: id, content: code});
+                await handleSaveSnippet();
             }
             const detectedVersion = (code.includes("const ") || code.includes("if ") || code.includes("readInput") || code.includes("readEnv")) ? "1.1" : version;
             const res = await startExecution({
@@ -149,6 +188,18 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                 </IconButton>
               </Tooltip>
               <DownloadButton snippet={snippet}/>
+              <Tooltip title={"Upload file"}>
+                <IconButton onClick={() => fileInputRef.current?.click()}>
+                  <UploadFile />
+                </IconButton>
+              </Tooltip>
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                accept=".ps"
+                onChange={handleFileUpload}
+              />
               <FormControl size="small" sx={{ minWidth: 90 }}>
                 <InputLabel id="version-select-label">Version</InputLabel>
                 <Select
@@ -174,7 +225,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                 </IconButton>
               </Tooltip>
               <Tooltip title={"Save changes"}>
-                <IconButton color={"primary"} onClick={() => updateSnippetContent({id: id, content: code})} disabled={isUpdateSnippetLoading || snippet?.content === code} >
+                <IconButton color={"primary"} onClick={handleSaveSnippet} disabled={isUpdateSnippetLoading || snippet?.content === code} >
                   <Save />
                 </IconButton>
               </Tooltip>
@@ -184,6 +235,11 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                 </IconButton>
               </Tooltip>
             </Box>
+            {updateError && (
+              <Alert severity="error" sx={{ whiteSpace: 'pre-wrap', my: 1.5 }}>
+                {updateError}
+              </Alert>
+            )}
             <Box display={"flex"} gap={2}>
               <Bòx flex={1} height={"fit-content"} overflow={"none"} minHeight={"500px"} bgcolor={'black'} color={'white'} code={code}>
                 <Editor

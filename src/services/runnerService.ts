@@ -30,7 +30,14 @@ export class RunnerService {
 
         if (!response.ok) {
             const errorBody = await response.text();
-            throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
+            let parsedMessage = errorBody;
+            try {
+                const json = JSON.parse(errorBody);
+                parsedMessage = json.message || json.error || errorBody;
+            } catch {
+                parsedMessage = errorBody;
+            }
+            throw new Error(parsedMessage || `HTTP error! status: ${response.status}`);
         }
 
         const text = await response.text();
