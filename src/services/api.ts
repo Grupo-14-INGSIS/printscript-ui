@@ -31,11 +31,23 @@ export class ApiSnippetOperations implements SnippetOperations {
 
         if (!response.ok) {
             const errorBody = await response.text();
-            throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
+            let parsedMessage = errorBody;
+            try {
+                const json = JSON.parse(errorBody);
+                parsedMessage = json.message || json.error || errorBody;
+            } catch {
+                parsedMessage = errorBody;
+            }
+            throw new Error(parsedMessage || `HTTP error! status: ${response.status}`);
         }
 
         const text = await response.text();
-        return text ? JSON.parse(text) : ({} as T);
+        if (!text) return {} as T;
+        try {
+            return JSON.parse(text);
+        } catch {
+            return text as unknown as T;
+        }
     }
 
     // --- Rules ---
@@ -213,34 +225,62 @@ export class ApiSnippetOperations implements SnippetOperations {
         return Promise.resolve([{ language: "printscript", extension: "ps", version: "1.1" }]);
     }
     async getTestCases(snippetId: string): Promise<TestCase[]> {
-        const testsMap = await this.request<Record<string, {
-            testId: string;
-            snippetId: string;
-            input?: string[];
-            output?: string[];
-            version?: string;
-            environment?: Record<string, string>;
-            name?: string;
-        }>>(`/api/v1/snippets/${snippetId}/tests`);
+        const response = await this.request<unknown>(`/api/v1/snippets/${snippetId}/tests`);
 
-        return Object.entries(testsMap || {}).map(([id, test]) => ({
-            id: test.testId || id,
-            name: test.name || `Test ${id.substring(0, 8)}`,
-            snippetId: test.snippetId || snippetId,
-            input: test.input || [],
-            output: test.output || [],
-            expected: test.output || [],
-            version: test.version || '1.0',
-            environment: test.environment || {},
-        }));
+        if (!response) {
+            return [];
+        }
+
+        const mapItem = (test: any, idFallback: string, index: number): TestCase => {
+            const id = test.id || test.testId || test._id || idFallback;
+            const rawInput = test.input ?? test.inputs ?? test.inputArguments ?? [];
+            const rawOutput = test.output ?? test.outputs ?? test.expected ?? test.expectedOutputs ?? test.expectedOutput ?? [];
+            const input = Array.isArray(rawInput) ? rawInput : (rawInput !== undefined && rawInput !== null ? [String(rawInput)] : []);
+            const output = Array.isArray(rawOutput) ? rawOutput : (rawOutput !== undefined && rawOutput !== null ? [String(rawOutput)] : []);
+            return {
+                id: String(id),
+                name: test.name || test.testName || test.description || `Test #${index + 1}`,
+                snippetId: test.snippetId || snippetId,
+                input: input,
+                output: output,
+                expected: output,
+                version: test.version || '1.0',
+                environment: test.environment || test.env || {},
+            };
+        };
+
+        if (Array.isArray(response)) {
+            return response.map((test, idx) => mapItem(test, `test-${idx + 1}`, idx));
+        }
+
+        if (typeof response === 'object' && response !== null) {
+            const obj = response as any;
+            const list = obj.tests || obj.testCases || obj.content || obj.data;
+            if (Array.isArray(list)) {
+                return list.map((test, idx) => mapItem(test, `test-${idx + 1}`, idx));
+            }
+
+            return Object.entries(obj).map(([key, value], idx) => {
+                const testObj = (value && typeof value === 'object') ? value : { name: key };
+                return mapItem(testObj, key, idx);
+            });
+        }
+
+        return [];
     }
 
     createTestCase(snippetId: string, testCase: CreateTestCase): Promise<{ testId: string }> {
         return this.request<{ testId: string }>(`/api/v1/snippets/${snippetId}/tests`, {
             method: 'POST',
             body: JSON.stringify({
-                input: testCase.input,
-                expected: testCase.expected,
+                name: testCase.name || 'Test',
+                testName: testCase.name || 'Test',
+                input: testCase.input || [],
+                inputs: testCase.input || [],
+                output: testCase.expected || [],
+                outputs: testCase.expected || [],
+                expected: testCase.expected || [],
+                expectedOutputs: testCase.expected || [],
                 version: testCase.version || '1.0',
                 environment: testCase.environment || {},
             }),
@@ -264,10 +304,44 @@ export class ApiSnippetOperations implements SnippetOperations {
         });
     }
 
-    runTestCase(snippetId: string, testId: string): Promise<TestCaseResult> {
-        return this.request<TestCaseResult>(`/api/v1/snippets/${snippetId}/tests/${testId}`, {
+    async runTestCase(snippetId: string, testId: string): Promise<TestCaseResult> {
+        const res = await this.request<unknown>(`/api/v1/snippets/${snippetId}/tests/${testId}`, {
             method: 'PUT',
         });
+
+        if (typeof res === 'string') {
+            const upper = res.toUpperCase();
+            const result = (upper.includes('SUCCESS') || upper.includes('PASS')) ? 'SUCCESS' : (upper.includes('FAIL') ? 'FAILED' : 'ERROR');
+            return {
+                actual: [],
+                result: result as 'SUCCESS' | 'FAILED' | 'ERROR',
+                message: res,
+            };
+        }
+
+        if (typeof res === 'object' && res !== null) {
+            const obj = res as any;
+            let resultStatus: 'SUCCESS' | 'FAILED' | 'ERROR' = 'ERROR';
+            const rawStatus = (obj.result || obj.status || (obj.success === true ? 'SUCCESS' : obj.success === false ? 'FAILED' : 'SUCCESS')).toString().toUpperCase();
+            if (rawStatus.includes('SUCCESS') || rawStatus.includes('PASS')) {
+                resultStatus = 'SUCCESS';
+            } else if (rawStatus.includes('FAIL')) {
+                resultStatus = 'FAILED';
+            }
+
+            const actual = obj.actual || obj.actualOutput || obj.outputs || obj.output || [];
+            return {
+                actual: Array.isArray(actual) ? actual : [String(actual)],
+                result: resultStatus,
+                message: obj.message || obj.error || '',
+            };
+        }
+
+        return {
+            actual: [],
+            result: 'SUCCESS',
+            message: 'Test executed successfully',
+        };
     }
     async formatSnippet(snippet: string): Promise<string> {
         try {

@@ -6,6 +6,7 @@ import { useServices } from '../contexts/serviceContext.tsx';
 import { useAuth0 } from '@auth0/auth0-react';
 import { StartExecutionResponse, ExecutionStatus, SharedUser } from '../types/runner.ts';
 import { TestCase, CreateTestCase, TestCaseResult } from '../types/TestCase.ts';
+import { queryClient } from '../App.tsx';
 
 export const useGetFormatRules = () => {
   const { apiService } = useServices();
@@ -109,7 +110,13 @@ export const useCreateTestCase = ({onSuccess}: {onSuccess?: (data: { testId: str
     return useMutation<{ testId: string }, Error, { snippetId: string; testCase: CreateTestCase }>(
         ({snippetId, testCase}) => apiService.createTestCase(snippetId, testCase),
         {
-            onSuccess,
+            onSuccess: (data, variables) => {
+                queryClient.invalidateQueries(['testCases', variables.snippetId]);
+                queryClient.invalidateQueries('testCases');
+                if (onSuccess) {
+                    onSuccess(data);
+                }
+            },
         }
     );
 };
@@ -131,7 +138,13 @@ export const useDeleteTestCase = ({onSuccess}: {onSuccess?: () => void} = {}) =>
         ['deleteTestCase'],
         ({snippetId, testId}) => apiService.deleteTestCase(snippetId, testId),
         {
-            onSuccess,
+            onSuccess: (_data, variables) => {
+                queryClient.invalidateQueries(['testCases', variables.snippetId]);
+                queryClient.invalidateQueries('testCases');
+                if (onSuccess) {
+                    onSuccess();
+                }
+            },
         }
     );
 };

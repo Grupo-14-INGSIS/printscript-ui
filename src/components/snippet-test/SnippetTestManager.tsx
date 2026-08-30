@@ -64,7 +64,7 @@ export const SnippetTestManager = ({
     const [results, setResults] = useState<Record<string, { result: TestCaseResult; loading?: boolean }>>({});
     const [runningAll, setRunningAll] = useState<boolean>(false);
 
-    const { data: testCases, isLoading: isLoadingTests, refetch: refetchTests } = useGetTestCases(snippetId);
+    const { data: testCases, isLoading: isLoadingTests, isError: isTestsError, error: testsError, refetch: refetchTests } = useGetTestCases(snippetId);
 
     const { mutateAsync: createTestCase, isLoading: isCreating } = useCreateTestCase({
         onSuccess: () => {
@@ -130,6 +130,9 @@ export const SnippetTestManager = ({
 
         try {
             await createTestCase({ snippetId, testCase: newTestCase });
+            await refetchTests();
+            resetForm();
+            setCurrentTab(0);
         } catch (err: unknown) {
             console.error("Error creating test case:", err);
             const message = err instanceof Error ? err.message : "Failed to create test case";
@@ -141,6 +144,7 @@ export const SnippetTestManager = ({
     const handleDeleteTest = async (testId: string) => {
         try {
             await deleteTestCase({ snippetId, testId });
+            await refetchTests();
             setResults((prev) => {
                 const updated = { ...prev };
                 delete updated[testId];
@@ -267,6 +271,19 @@ export const SnippetTestManager = ({
                     {isLoadingTests ? (
                         <Box display="flex" justifyContent="center" alignItems="center" py={4}>
                             <CircularProgress size={32} />
+                        </Box>
+                    ) : isTestsError ? (
+                        <Box py={2}>
+                            <Alert
+                                severity="error"
+                                action={
+                                    <Button color="inherit" size="small" onClick={() => refetchTests()}>
+                                        Retry
+                                    </Button>
+                                }
+                            >
+                                {testsError instanceof Error ? testsError.message : "Error loading tests"}
+                            </Alert>
                         </Box>
                     ) : testCases && testCases.length > 0 ? (
                         <>
