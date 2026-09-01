@@ -231,37 +231,51 @@ export class ApiSnippetOperations implements SnippetOperations {
             return [];
         }
 
-        const mapItem = (test: any, idFallback: string, index: number): TestCase => {
-            const id = test.id || test.testId || test._id || idFallback;
+        const mapItem = (test: Record<string, unknown>, idFallback: string, index: number): TestCase => {
+            const id = test.id ?? test.testId ?? test._id ?? idFallback;
             const rawInput = test.input ?? test.inputs ?? test.inputArguments ?? [];
             const rawOutput = test.output ?? test.outputs ?? test.expected ?? test.expectedOutputs ?? test.expectedOutput ?? [];
-            const input = Array.isArray(rawInput) ? rawInput : (rawInput !== undefined && rawInput !== null ? [String(rawInput)] : []);
-            const output = Array.isArray(rawOutput) ? rawOutput : (rawOutput !== undefined && rawOutput !== null ? [String(rawOutput)] : []);
+            
+            const toArray = (val: unknown): string[] => {
+                if (Array.isArray(val)) {
+                    return val.map((item) => String(item));
+                }
+                if (val !== undefined && val !== null) {
+                    return [String(val)];
+                }
+                return [];
+            };
+
+            const input = toArray(rawInput);
+            const output = toArray(rawOutput);
+            const name = test.name ?? test.testName ?? test.description ?? `Test #${index + 1}`;
+            const env = (test.environment ?? test.env ?? {}) as Record<string, string>;
+
             return {
                 id: String(id),
-                name: test.name || test.testName || test.description || `Test #${index + 1}`,
-                snippetId: test.snippetId || snippetId,
+                name: String(name),
+                snippetId: typeof test.snippetId === 'string' ? test.snippetId : snippetId,
                 input: input,
                 output: output,
                 expected: output,
-                version: test.version || '1.0',
-                environment: test.environment || test.env || {},
+                version: typeof test.version === 'string' ? test.version : '1.0',
+                environment: typeof env === 'object' && env !== null ? env : {},
             };
         };
 
         if (Array.isArray(response)) {
-            return response.map((test, idx) => mapItem(test, `test-${idx + 1}`, idx));
+            return response.map((test, idx) => mapItem(test as Record<string, unknown>, `test-${idx + 1}`, idx));
         }
 
         if (typeof response === 'object' && response !== null) {
-            const obj = response as any;
-            const list = obj.tests || obj.testCases || obj.content || obj.data;
+            const obj = response as Record<string, unknown>;
+            const list = obj.tests ?? obj.testCases ?? obj.content ?? obj.data;
             if (Array.isArray(list)) {
-                return list.map((test, idx) => mapItem(test, `test-${idx + 1}`, idx));
+                return list.map((test, idx) => mapItem(test as Record<string, unknown>, `test-${idx + 1}`, idx));
             }
 
             return Object.entries(obj).map(([key, value], idx) => {
-                const testObj = (value && typeof value === 'object') ? value : { name: key };
+                const testObj = (value && typeof value === 'object') ? (value as Record<string, unknown>) : { name: key };
                 return mapItem(testObj, key, idx);
             });
         }
@@ -320,20 +334,28 @@ export class ApiSnippetOperations implements SnippetOperations {
         }
 
         if (typeof res === 'object' && res !== null) {
-            const obj = res as any;
+            const obj = res as Record<string, unknown>;
             let resultStatus: 'SUCCESS' | 'FAILED' | 'ERROR' = 'ERROR';
-            const rawStatus = (obj.result || obj.status || (obj.success === true ? 'SUCCESS' : obj.success === false ? 'FAILED' : 'SUCCESS')).toString().toUpperCase();
+            const rawStatus = String(obj.result ?? obj.status ?? (obj.success === true ? 'SUCCESS' : obj.success === false ? 'FAILED' : 'SUCCESS')).toUpperCase();
             if (rawStatus.includes('SUCCESS') || rawStatus.includes('PASS')) {
                 resultStatus = 'SUCCESS';
             } else if (rawStatus.includes('FAIL')) {
                 resultStatus = 'FAILED';
             }
 
-            const actual = obj.actual || obj.actualOutput || obj.outputs || obj.output || [];
+            const actual = obj.actual ?? obj.actualOutput ?? obj.outputs ?? obj.output ?? [];
+            const actualList = Array.isArray(actual)
+                ? actual.map((item) => String(item))
+                : (actual !== undefined && actual !== null ? [String(actual)] : []);
+
+            const message = typeof obj.message === 'string'
+                ? obj.message
+                : (typeof obj.error === 'string' ? obj.error : '');
+
             return {
-                actual: Array.isArray(actual) ? actual : [String(actual)],
+                actual: actualList,
                 result: resultStatus,
-                message: obj.message || obj.error || '',
+                message: message,
             };
         }
 
