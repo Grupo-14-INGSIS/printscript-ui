@@ -5,6 +5,7 @@ import {CreateSnippet, PaginatedSnippets, Snippet, SnippetFilters} from "./snipp
 import { useServices } from '../contexts/serviceContext.tsx';
 import { useAuth0 } from '@auth0/auth0-react';
 import { StartExecutionResponse, ExecutionStatus, SharedUser } from '../types/runner.ts';
+import { TestCase, CreateTestCase, TestCaseResult } from '../types/TestCase.ts';
 
 export const useGetFormatRules = () => {
   const { apiService } = useServices();
@@ -98,16 +99,48 @@ export const useCreateSnippet = ({onSuccess}: {onSuccess: () => void}): UseMutat
 
 export const useGetTestCases = (snippetId: string | null) => {
     const { apiService } = useServices();
-    return useQuery<string[], Error>(['testCases', snippetId], () => apiService.getTestCases(snippetId!), {
+    return useQuery<TestCase[], Error>(['testCases', snippetId], () => apiService.getTestCases(snippetId!), {
         enabled: !!snippetId,
     });
 };
 
-export const useRemoveTestCase = ({onSuccess}: {onSuccess: () => void}) => {
+export const useCreateTestCase = ({onSuccess}: {onSuccess?: (data: { testId: string }) => void} = {}) => {
+    const { apiService } = useServices();
+    return useMutation<{ testId: string }, Error, { snippetId: string; testCase: CreateTestCase }>(
+        ({snippetId, testCase}) => apiService.createTestCase(snippetId, testCase),
+        {
+            onSuccess,
+        }
+    );
+};
+
+export const useRemoveTestCase = ({onSuccess}: {onSuccess?: () => void} = {}) => {
     const { apiService } = useServices();
     return useMutation<string, Error, string>(
         ['removeTestCase'],
         (id: string) => apiService.removeTestCase(id),
+        {
+            onSuccess,
+        }
+    );
+};
+
+export const useDeleteTestCase = ({onSuccess}: {onSuccess?: () => void} = {}) => {
+    const { apiService } = useServices();
+    return useMutation<void, Error, { snippetId: string; testId: string }>(
+        ['deleteTestCase'],
+        ({snippetId, testId}) => apiService.deleteTestCase(snippetId, testId),
+        {
+            onSuccess,
+        }
+    );
+};
+
+export const useRunTestCase = ({onSuccess}: {onSuccess?: (result: TestCaseResult, variables: { snippetId: string; testId: string }) => void} = {}) => {
+    const { apiService } = useServices();
+    return useMutation<TestCaseResult, Error, { snippetId: string; testId: string }>(
+        ['runTestCase'],
+        ({snippetId, testId}) => apiService.runTestCase(snippetId, testId),
         {
             onSuccess,
         }

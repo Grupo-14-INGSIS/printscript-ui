@@ -3,6 +3,7 @@ import { CreateSnippet, PaginatedSnippets, Snippet, SnippetData, SnippetFilters,
 import { FileType } from "../../types/FileType.ts"; // Corrected path
 import { StartExecutionResponse, ExecutionStatus, SharedUser } from "../../types/runner.ts"; // Corrected path
 import { Rule } from "../../types/Rule.ts"; // Corrected path
+import { TestCase, CreateTestCase, TestCaseResult } from "../../types/TestCase.ts";
 import { FakeSnippetStore } from "./fakeSnippetStore.ts"; // Added import for FakeSnippetStore
 import { formatPrintScriptCode } from "../formatter.ts";
 
@@ -72,12 +73,30 @@ export class FakeSnippetOperations implements SnippetOperations {
         return Promise.resolve([{ language: "printscript", extension: "ps", version: "1.1" }]);
     }
 
-    getTestCases(_snippetId: string): Promise<string[]> {
-        return Promise.resolve([]);
+    getTestCases(snippetId: string): Promise<TestCase[]> {
+        return Promise.resolve(this.fakeStore.getTests(snippetId));
     }
 
-    removeTestCase(id: string): Promise<string> {
-        return Promise.resolve(id);
+    createTestCase(snippetId: string, testCase: CreateTestCase): Promise<{ testId: string }> {
+        const testId = this.fakeStore.createTest(snippetId, testCase);
+        return Promise.resolve({ testId });
+    }
+
+    removeTestCase(snippetIdOrTestId: string, testId?: string): Promise<string> {
+        if (testId) {
+            this.fakeStore.deleteTest(snippetIdOrTestId, testId);
+            return Promise.resolve(testId);
+        }
+        return Promise.resolve(snippetIdOrTestId);
+    }
+
+    deleteTestCase(snippetId: string, testId: string): Promise<void> {
+        this.fakeStore.deleteTest(snippetId, testId);
+        return Promise.resolve();
+    }
+
+    runTestCase(snippetId: string, testId: string): Promise<TestCaseResult> {
+        return Promise.resolve(this.fakeStore.runTest(snippetId, testId));
     }
 
     formatSnippet(snippet: string): Promise<string> {
