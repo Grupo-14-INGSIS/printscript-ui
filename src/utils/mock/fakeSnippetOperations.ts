@@ -16,7 +16,7 @@ export class FakeSnippetOperations implements SnippetOperations {
         return Promise.resolve([]);
     }
 
-    modifyFormatRule(_newRules: Rule[], _language?: string): Promise<void> {
+    modifyFormatRule(_newRules: Rule[], _language?: string, _applyToSnippets?: boolean): Promise<void> {
         return Promise.resolve();
     }
 
@@ -24,7 +24,7 @@ export class FakeSnippetOperations implements SnippetOperations {
         return Promise.resolve([]);
     }
 
-    modifyLintingRule(_newRules: Rule[], _language?: string): Promise<void> {
+    modifyLintingRule(_newRules: Rule[], _language?: string, _applyToSnippets?: boolean): Promise<void> {
         return Promise.resolve();
     }
 
@@ -101,6 +101,10 @@ export class FakeSnippetOperations implements SnippetOperations {
 
     formatSnippet(snippet: string): Promise<string> {
         return Promise.resolve(formatPrintScriptCode(snippet, []));
+    }
+
+    lintSnippet(_snippet: string): Promise<string> {
+        return Promise.resolve("No issues found.");
     }
 
     getSnippetData(id: string): Promise<SnippetData> {

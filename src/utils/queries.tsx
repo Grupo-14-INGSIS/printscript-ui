@@ -15,8 +15,13 @@ export const useGetFormatRules = () => {
 
 export const useModifyFormatRules = ({onSuccess}: {onSuccess: () => void}) => {
   const { apiService } = useServices();
-  return useMutation<void, Error, Rule[]>(
-      (rule: Rule[]) => apiService.modifyFormatRule(rule),
+  return useMutation<void, Error, { rules: Rule[]; applyToSnippets?: boolean } | Rule[]>(
+      (payload) => {
+        if (Array.isArray(payload)) {
+          return apiService.modifyFormatRule(payload);
+        }
+        return apiService.modifyFormatRule(payload.rules, "printscript", payload.applyToSnippets);
+      },
       {onSuccess}
   );
 }
@@ -28,8 +33,13 @@ export const useGetLintingRules = () => {
 
 export const useModifyLintingRules = ({onSuccess}: {onSuccess: () => void}) => {
   const { apiService } = useServices();
-  return useMutation<void, Error, Rule[]>(
-      (rule: Rule[]) => apiService.modifyLintingRule(rule),
+  return useMutation<void, Error, { rules: Rule[]; applyToSnippets?: boolean } | Rule[]>(
+      (payload) => {
+        if (Array.isArray(payload)) {
+          return apiService.modifyLintingRule(payload);
+        }
+        return apiService.modifyLintingRule(payload.rules, "printscript", payload.applyToSnippets);
+      },
       {onSuccess}
   );
 }
@@ -177,6 +187,13 @@ export const useFormatSnippet = () => {
     );
 }
 
+export const useLintSnippet = () => {
+    const { apiService } = useServices();
+    return useMutation<string, Error, string>(
+        (snippetContent: string) => apiService.lintSnippet(snippetContent)
+    );
+}
+
 export const useGetSnippetById = (id: string | null) => {
     const { apiService, runnerService } = useServices();
 
@@ -198,8 +215,8 @@ export const useGetSnippetById = (id: string | null) => {
                 language: metadata.language,
                 content: content,
                 extension: 'ps', // Hardcode to .ps as requested
-                compliance: 'pending', // Default value
-                author: '', // Not provided by these endpoints
+                compliance: metadata.compliance || 'pending',
+                author: metadata.author || '',
             };
         },
         {

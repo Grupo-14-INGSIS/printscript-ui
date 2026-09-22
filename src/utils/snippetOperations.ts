@@ -11,9 +11,9 @@ export interface SnippetOperations {
 
     getFileTypes(): Promise<FileType[]>
 
-    modifyFormatRule(newRules: Rule[], language?: string): Promise<void>
+    modifyFormatRule(newRules: Rule[], language?: string, applyToSnippets?: boolean): Promise<void>
 
-    modifyLintingRule(newRules: Rule[], language?: string): Promise<void>
+    modifyLintingRule(newRules: Rule[], language?: string, applyToSnippets?: boolean): Promise<void>
 
     registerUser(email: string): Promise<void>
 
@@ -31,6 +31,8 @@ export interface SnippetOperations {
     runTestCase(snippetId: string, testId: string): Promise<TestCaseResult>
 
     formatSnippet(snippet: string): Promise<string>
+
+    lintSnippet(snippet: string): Promise<string>
 
     deleteSnippet(id: string): Promise<string>
 
