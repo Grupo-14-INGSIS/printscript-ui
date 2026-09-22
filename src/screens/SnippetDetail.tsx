@@ -4,14 +4,14 @@ import {highlight, languages} from "prismjs";
 import "prismjs/components/prism-clike";
 import "prismjs/components/prism-javascript";
 import "prismjs/themes/prism-okaidia.css";
-import {Alert, Box, CircularProgress, IconButton, Tooltip, Typography, Select, MenuItem, FormControl, InputLabel, Tab, Tabs} from "@mui/material";
+import {Alert, Box, CircularProgress, IconButton, Tooltip, Typography, Select, MenuItem, FormControl, InputLabel, Tab, Tabs, Switch, FormControlLabel, Chip} from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import {
-  useUpdateSnippetContent, useStartExecution, useCancelExecution, useGetExecutionStatus, useGetTestCases
+  useUpdateSnippetContent, useStartExecution, useCancelExecution, useGetExecutionStatus, useGetTestCases, useLintSnippet
 } from "../utils/queries.tsx";
 import {useFormatSnippet, useGetSnippetById} from "../utils/queries.tsx";
 import {Bòx} from "../components/snippet-table/SnippetBox.tsx";
-import {BugReport, Delete, Download, Save, Share, PlayArrow, StopRounded, UploadFile, Terminal} from "@mui/icons-material";
+import {BugReport, Delete, Download, Save, Share, PlayArrow, StopRounded, UploadFile, Terminal, FactCheck} from "@mui/icons-material";
 import {ShareSnippetModal} from "../components/snippet-detail/ShareSnippetModal.tsx";
 import {TestSnippetModal} from "../components/snippet-test/TestSnippetModal.tsx";
 import {SnippetTestManager} from "../components/snippet-test/SnippetTestManager.tsx";
@@ -71,9 +71,30 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   const [executionResult, setExecutionResult] = useState<StartExecutionResponse | null>(null);
   const {createSnackbar} = useSnackbarContext();
 
+  const [autoFormat, setAutoFormat] = useState<boolean>(() => {
+    const stored = localStorage.getItem("printscript_auto_format");
+    return stored !== null ? stored === "true" : true;
+  });
+  const [autoLint, setAutoLint] = useState<boolean>(() => {
+    const stored = localStorage.getItem("printscript_auto_lint");
+    return stored !== null ? stored === "true" : true;
+  });
+  const [lintReport, setLintReport] = useState<string | null>(null);
+
+  const handleToggleAutoFormat = (checked: boolean) => {
+    setAutoFormat(checked);
+    localStorage.setItem("printscript_auto_format", String(checked));
+  };
+
+  const handleToggleAutoLint = (checked: boolean) => {
+    setAutoLint(checked);
+    localStorage.setItem("printscript_auto_lint", String(checked));
+  };
+
   const {data: snippet, isLoading} = useGetSnippetById(id);
   const {data: testCases} = useGetTestCases(id);
-  const {mutate: formatSnippet, isLoading: isFormatLoading, data: formatSnippetData} = useFormatSnippet()
+  const {mutateAsync: formatSnippetAsync, isLoading: isFormatLoading} = useFormatSnippet();
+  const {mutateAsync: lintSnippetAsync, isLoading: isLintLoading} = useLintSnippet();
   const {mutateAsync: updateSnippetContent, isLoading: isUpdateSnippetLoading} = useUpdateSnippetContent({
     onSuccess: () => {
       queryClient.invalidateQueries(['snippet', id]);
@@ -109,13 +130,6 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
     }
   }, [snippet]);
 
-  useEffect(() => {
-    if (formatSnippetData) {
-      setCode(formatSnippetData);
-      setUpdateError(null);
-    }
-  }, [formatSnippetData])
-
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -133,10 +147,63 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
     }
   };
 
+  const handleManualFormat = async () => {
+    try {
+      const formatted = await formatSnippetAsync(code);
+      setCode(formatted);
+      setUpdateError(null);
+      createSnackbar('success', 'Snippet formatted successfully');
+    } catch (err: unknown) {
+      console.error("Format error:", err);
+      const message = err instanceof Error ? err.message : 'Failed to format snippet';
+      createSnackbar('error', message);
+    }
+  };
+
+  const handleManualLint = async () => {
+    try {
+      const result = await lintSnippetAsync(code);
+      if (!result || result.includes("SUCCESS") || result.includes("No issues were found")) {
+        setLintReport(null);
+        createSnackbar('success', 'Snippet passed linting with no issues!');
+      } else {
+        setLintReport(result);
+        createSnackbar('warning', 'Linting issues detected');
+      }
+    } catch (err: unknown) {
+      console.error("Lint error:", err);
+      const message = err instanceof Error ? err.message : 'Failed to lint snippet';
+      createSnackbar('error', message);
+    }
+  };
+
   const handleSaveSnippet = async () => {
     setUpdateError(null);
     try {
-      await updateSnippetContent({id: id, content: code});
+      let contentToSave = code;
+      if (autoFormat) {
+        try {
+          contentToSave = await formatSnippetAsync(code);
+          setCode(contentToSave);
+        } catch (fErr) {
+          console.warn("Auto-format failed, saving current content", fErr);
+        }
+      }
+      await updateSnippetContent({id: id, content: contentToSave});
+
+      if (autoLint) {
+        try {
+          const result = await lintSnippetAsync(contentToSave);
+          if (!result || result.includes("SUCCESS") || result.includes("No issues were found")) {
+            setLintReport(null);
+          } else {
+            setLintReport(result);
+            createSnackbar('warning', 'Auto-lint: issues detected');
+          }
+        } catch (lErr) {
+          console.warn("Auto-lint failed", lErr);
+        }
+      }
     } catch (err: unknown) {
       console.error("Error saving snippet:", err);
       const message = err instanceof Error ? err.message : 'Failed to update snippet';
@@ -178,8 +245,19 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
             <Typography fontWeight={"bold"} mb={2} variant="h4">Loading...</Typography>
             <CircularProgress/>
           </>) : <>
-            <Typography variant="h4" fontWeight={"bold"}>{snippet?.name ?? "Snippet"}</Typography>
-            <Box display="flex" flexDirection="row" gap="8px" padding="8px" alignItems="center">
+            <Box display="flex" alignItems="center" gap={2} mb={1}>
+              <Typography variant="h4" fontWeight={"bold"}>{snippet?.name ?? "Snippet"}</Typography>
+              {snippet?.compliance && (
+                <Chip
+                  label={snippet.compliance.toUpperCase()}
+                  color={snippet.compliance === 'compliant' ? 'success' : snippet.compliance === 'not-compliant' ? 'error' : snippet.compliance === 'failed' ? 'error' : 'warning'}
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontWeight: 600 }}
+                />
+              )}
+            </Box>
+            <Box display="flex" flexDirection="row" gap="8px" padding="8px" alignItems="center" flexWrap="wrap">
               <Tooltip title={"Share"}>
                 <IconButton onClick={() => setShareModalOppened(true)}>
                   <Share/>
@@ -224,10 +302,16 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                   {runSnippet ? <StopRounded/> : <PlayArrow/>}
                 </IconButton>
               </Tooltip>
-              {/* TODO: we can implement a live mode*/}
+              {/* Manual format */}
               <Tooltip title={"Format"}>
-                <IconButton onClick={() => formatSnippet(code)} disabled={isFormatLoading}>
+                <IconButton onClick={handleManualFormat} disabled={isFormatLoading}>
                   <ReadMoreIcon />
+                </IconButton>
+              </Tooltip>
+              {/* Manual lint */}
+              <Tooltip title={"Lint"}>
+                <IconButton onClick={handleManualLint} disabled={isLintLoading}>
+                  <FactCheck />
                 </IconButton>
               </Tooltip>
               <Tooltip title={"Save changes"}>
@@ -240,10 +324,41 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                   <Delete color={"error"} />
                 </IconButton>
               </Tooltip>
+
+              <Box sx={{ borderLeft: '1px solid #ccc', height: 28, mx: 1 }} />
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    size="small"
+                    checked={autoFormat}
+                    onChange={(e) => handleToggleAutoFormat(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label={<Typography variant="body2" sx={{ userSelect: 'none' }}>Auto-format</Typography>}
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    size="small"
+                    checked={autoLint}
+                    onChange={(e) => handleToggleAutoLint(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label={<Typography variant="body2" sx={{ userSelect: 'none' }}>Auto-lint</Typography>}
+              />
             </Box>
             {updateError && (
               <Alert severity="error" sx={{ whiteSpace: 'pre-wrap', my: 1.5 }}>
                 {updateError}
+              </Alert>
+            )}
+            {lintReport && (
+              <Alert severity="warning" onClose={() => setLintReport(null)} sx={{ whiteSpace: 'pre-wrap', my: 1.5 }}>
+                <Typography variant="subtitle2" fontWeight="bold">Linting Report:</Typography>
+                {lintReport}
               </Alert>
             )}
             <Box display={"flex"} gap={2}>

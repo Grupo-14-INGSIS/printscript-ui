@@ -1,11 +1,15 @@
 import React, {useEffect, useState} from 'react';
 import {
+  Box,
   Button,
   Card,
   Checkbox,
+  FormControlLabel,
   List,
   ListItem,
-  ListItemText, TextField,
+  ListItemText,
+  Switch,
+  TextField,
   Typography
 } from "@mui/material";
 import {useGetLintingRules, useModifyLintingRules} from "../../utils/queries.tsx";
@@ -14,6 +18,7 @@ import {Rule} from "../../types/Rule.ts";
 
 const LintingRulesList = () => {
   const [rules, setRules] = useState<Rule[] | undefined>([]);
+  const [autoApplyToSnippets, setAutoApplyToSnippets] = useState<boolean>(true);
 
   const {data, isLoading} = useGetLintingRules();
   const {mutateAsync, isLoading: isLoadingMutate} = useModifyLintingRules({
@@ -88,7 +93,25 @@ const LintingRulesList = () => {
           )
         })}
       </List>
-      <Button disabled={isLoading} variant={"contained"} onClick={() => mutateAsync(rules ?? [])}>Save</Button>
+      <Box display="flex" alignItems="center" justifyContent="space-between" mt={2}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={autoApplyToSnippets}
+              onChange={(e) => setAutoApplyToSnippets(e.target.checked)}
+              color="primary"
+            />
+          }
+          label="Auto-lint all snippets on rule save"
+        />
+        <Button
+          disabled={isLoading || isLoadingMutate}
+          variant={"contained"}
+          onClick={() => mutateAsync({ rules: rules ?? [], applyToSnippets: autoApplyToSnippets })}
+        >
+          Save
+        </Button>
+      </Box>
     </Card>
 
   );

@@ -26,6 +26,9 @@ export type SnippetData = {
     snippetId: string;
     name: string;
     language: string;
+    compliance?: ComplianceEnum;
+    status?: string;
+    author?: string;
 };
 
 export type Snippet = CreateSnippet & {

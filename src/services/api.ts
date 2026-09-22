@@ -7,6 +7,7 @@ import { GetTokenSilentlyOptions } from "@auth0/auth0-react";
 import { StartExecutionResponse, ExecutionStatus, CancelExecutionRequest, SharedUser } from '../types/runner.ts';
 import { TestCase, CreateTestCase, TestCaseResult } from '../types/TestCase.ts';
 import { formatPrintScriptCode } from "../utils/formatter.ts";
+import { lintPrintScriptCode } from "../utils/linter.ts";
 
 export class ApiSnippetOperations implements SnippetOperations {
 
@@ -62,7 +63,7 @@ export class ApiSnippetOperations implements SnippetOperations {
         }));
     }
 
-    modifyFormatRule(rules: Rule[], language = "printscript"): Promise<void> {
+    modifyFormatRule(rules: Rule[], language = "printscript", applyToSnippets = true): Promise<void> {
         const rulesMap = rules.reduce((acc, rule) => {
             if (rule.value === undefined || typeof rule.value === 'boolean') {
                 acc[rule.name] = rule.isActive;
@@ -78,6 +79,7 @@ export class ApiSnippetOperations implements SnippetOperations {
                 task: 'formatting',
                 language,
                 rules: rulesMap,
+                applyToSnippets,
             }),
         });
     }
@@ -92,7 +94,7 @@ export class ApiSnippetOperations implements SnippetOperations {
         }));
     }
 
-    modifyLintingRule(rules: Rule[], language = "printscript"): Promise<void> {
+    modifyLintingRule(rules: Rule[], language = "printscript", applyToSnippets = true): Promise<void> {
         const rulesMap = rules.reduce((acc, rule) => {
             if (rule.value === undefined || typeof rule.value === 'boolean') {
                 acc[rule.name] = rule.isActive;
@@ -108,6 +110,7 @@ export class ApiSnippetOperations implements SnippetOperations {
                 task: 'linting',
                 language,
                 rules: rulesMap,
+                applyToSnippets,
             }),
         });
     }
@@ -371,6 +374,16 @@ export class ApiSnippetOperations implements SnippetOperations {
             return formatPrintScriptCode(snippet, rules);
         } catch (_error) {
             return formatPrintScriptCode(snippet, []);
+        }
+    }
+    async lintSnippet(snippet: string): Promise<string> {
+        try {
+            const rules = await this.getLintingRules("printscript");
+            const result = lintPrintScriptCode(snippet, rules);
+            return result.summary;
+        } catch (_error) {
+            const result = lintPrintScriptCode(snippet, []);
+            return result.summary;
         }
     }
     getSnippetData(id: string): Promise<SnippetData> {
