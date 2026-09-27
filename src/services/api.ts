@@ -202,6 +202,7 @@ export class ApiSnippetOperations implements SnippetOperations {
                 userId: userId ?? '',
                 name: createSnippet.name,
                 language: createSnippet.language,
+                description: createSnippet.description ?? '',
             }),
         });
     }
@@ -221,6 +222,19 @@ export class ApiSnippetOperations implements SnippetOperations {
 
     getSharedUsers(snippetId: string): Promise<SharedUser[]> {
         return this.request<SharedUser[]>(`/api/v1/snippets/${snippetId}/permission`);
+    }
+
+    async searchUsers(nameQuery: string): Promise<{id: string, name: string}[]> {
+        const params = new URLSearchParams();
+        if (nameQuery.trim()) params.append('name', nameQuery.trim());
+        return this.request<{id: string, name: string}[]>(`/api/v1/users?${params.toString()}`);
+    }
+
+    updateSnippetMetadata(snippetId: string, metadata: { description?: string; version?: string }): Promise<void> {
+        return this.request<void>(`/api/v1/snippets/${snippetId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(metadata),
+        });
     }
 
     // Métodos no implementados (placeholders)

@@ -42,6 +42,10 @@ export interface SnippetOperations {
 
     getSharedUsers(snippetId: string): Promise<SharedUser[]>
 
+    searchUsers(nameQuery: string): Promise<{id: string, name: string}[]>
+
+    updateSnippetMetadata(snippetId: string, metadata: { description?: string; version?: string }): Promise<void>
+
     listSnippetDescriptors(page: number,pageSize: number,filters?: SnippetFilters): Promise<PaginatedSnippets>
 
     // --- Execution Methods ---

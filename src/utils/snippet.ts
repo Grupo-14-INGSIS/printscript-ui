@@ -14,6 +14,8 @@ export type CreateSnippet = {
   content: string;
   language: string;
   extension: string;
+  description?: string;
+  version?: string;
 }
 
 export type CreateSnippetWithLang = CreateSnippet & { language: string }
@@ -29,6 +31,8 @@ export type SnippetData = {
     compliance?: ComplianceEnum;
     status?: string;
     author?: string;
+    description?: string;
+    version?: string;
 };
 
 export type Snippet = CreateSnippet & {
@@ -38,6 +42,8 @@ export type Snippet = CreateSnippet & {
 type SnippetStatus = {
   compliance: ComplianceEnum;
   author: string;
+  description?: string;
+  version?: string;
 }
 export type PaginatedSnippets = Pagination & {
   snippets: Snippet[]

@@ -4,14 +4,14 @@ import {highlight, languages} from "prismjs";
 import "prismjs/components/prism-clike";
 import "prismjs/components/prism-javascript";
 import "prismjs/themes/prism-okaidia.css";
-import {Alert, Box, CircularProgress, IconButton, Tooltip, Typography, Select, MenuItem, FormControl, InputLabel, Tab, Tabs, Switch, FormControlLabel, Chip} from "@mui/material";
+import {Alert, Box, CircularProgress, IconButton, Tooltip, Typography, Select, MenuItem, FormControl, InputLabel, Tab, Tabs, Switch, FormControlLabel, Chip, Menu, ListItemIcon, ListItemText, TextField} from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import {
-  useUpdateSnippetContent, useStartExecution, useCancelExecution, useGetExecutionStatus, useGetTestCases, useLintSnippet
+  useUpdateSnippetContent, useStartExecution, useCancelExecution, useGetExecutionStatus, useGetTestCases, useLintSnippet, useRunTestCase, useUpdateSnippetMetadata
 } from "../utils/queries.tsx";
 import {useFormatSnippet, useGetSnippetById} from "../utils/queries.tsx";
 import {Bòx} from "../components/snippet-table/SnippetBox.tsx";
-import {BugReport, Delete, Download, Save, Share, PlayArrow, StopRounded, UploadFile, Terminal, FactCheck} from "@mui/icons-material";
+import {BugReport, Delete, Download, Save, Share, PlayArrow, StopRounded, UploadFile, Terminal, FactCheck, Code} from "@mui/icons-material";
 import {ShareSnippetModal} from "../components/snippet-detail/ShareSnippetModal.tsx";
 import {TestSnippetModal} from "../components/snippet-test/TestSnippetModal.tsx";
 import {SnippetTestManager} from "../components/snippet-test/SnippetTestManager.tsx";
@@ -30,28 +30,64 @@ type SnippetDetailProps = {
   handleCloseModal: () => void;
 }
 
-const DownloadButton = ({snippet}: { snippet?: Snippet }) => {
+const DownloadButton = ({snippet, onFormatSnippet}: { snippet?: Snippet, onFormatSnippet?: (code: string) => Promise<string> }) => {
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [formatting, setFormatting] = useState(false);
+
   if (!snippet) return null;
-  const file = new Blob([snippet.content], {type: 'text/plain'});
+
+  const handleDownloadOriginal = () => {
+    const file = new Blob([snippet.content], {type: 'text/plain'});
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${snippet.name}.ps`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setAnchorEl(null);
+  };
+
+  const handleDownloadFormatted = async () => {
+    setFormatting(true);
+    try {
+      const formatted = onFormatSnippet ? await onFormatSnippet(snippet.content) : snippet.content;
+      const file = new Blob([formatted], {type: 'text/plain'});
+      const url = URL.createObjectURL(file);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${snippet.name}_formatted.ps`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // Fallback to original if formatting fails
+      handleDownloadOriginal();
+    } finally {
+      setFormatting(false);
+      setAnchorEl(null);
+    }
+  };
 
   return (
-    <Tooltip title={"Download"}>
-      <IconButton sx={{
-        cursor: "pointer"
-      }}>
-        <a download={`${snippet.name}.ps`} target="_blank"
-           rel="noreferrer" href={URL.createObjectURL(file)} style={{
-          textDecoration: "none",
-          color: "inherit",
-          display: 'flex',
-          alignItems: 'center',
-        }}>
-          <Download/>
-        </a>
-      </IconButton>
-    </Tooltip>
+    <>
+      <Tooltip title={"Download"}>
+        <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} disabled={formatting}>
+          {formatting ? <CircularProgress size={20} /> : <Download/>}
+        </IconButton>
+      </Tooltip>
+      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
+        <MenuItem onClick={handleDownloadOriginal}>
+          <ListItemIcon><Download fontSize="small" /></ListItemIcon>
+          <ListItemText>Download Original</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleDownloadFormatted} disabled={formatting}>
+          <ListItemIcon><Code fontSize="small" /></ListItemIcon>
+          <ListItemText>Download Formatted</ListItemText>
+        </MenuItem>
+      </Menu>
+    </>
   )
 }
+
 
 export const SnippetDetail = (props: SnippetDetailProps) => {
   const {id, handleCloseModal} = props;
@@ -69,6 +105,8 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   const [runSnippet, setRunSnippet] = useState(false);
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [executionResult, setExecutionResult] = useState<StartExecutionResponse | null>(null);
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [descriptionDraft, setDescriptionDraft] = useState("");
   const {createSnackbar} = useSnackbarContext();
 
   const [autoFormat, setAutoFormat] = useState<boolean>(() => {
@@ -95,6 +133,13 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   const {data: testCases} = useGetTestCases(id);
   const {mutateAsync: formatSnippetAsync, isLoading: isFormatLoading} = useFormatSnippet();
   const {mutateAsync: lintSnippetAsync, isLoading: isLintLoading} = useLintSnippet();
+  const {mutateAsync: runTestCase} = useRunTestCase();
+  const {mutateAsync: updateSnippetMetadata} = useUpdateSnippetMetadata({
+    onSuccess: () => {
+      queryClient.invalidateQueries(['snippet', id]);
+      setEditingDescription(false);
+    }
+  });
   const {mutateAsync: updateSnippetContent, isLoading: isUpdateSnippetLoading} = useUpdateSnippetContent({
     onSuccess: () => {
       queryClient.invalidateQueries(['snippet', id]);
@@ -106,7 +151,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
     onSuccess: (data) => {
         setExecutionResult(data);
         setExecutionId(id); 
-        setRunSnippet(false);
+        setRunSnippet(true);
     }
   });
   const {mutateAsync: cancelExecution, isLoading: isCancellingExecution} = useCancelExecution({
@@ -120,11 +165,18 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   const {data: executionStatus} = useGetExecutionStatus(id, executionId || '');
 
   useEffect(() => {
+    if (executionStatus?.status === 'COMPLETED' || executionStatus?.status === 'ERROR') {
+      setRunSnippet(false);
+    }
+  }, [executionStatus]);
+
+  useEffect(() => {
     if (snippet) {
       setCode(snippet.content);
       setUpdateError(null);
-      // Auto-detect 1.1 if code contains 1.1 syntax
-      if (snippet.content.includes("const ") || snippet.content.includes("if ") || snippet.content.includes("readInput") || snippet.content.includes("readEnv")) {
+      if (snippet.version) {
+        setVersion(snippet.version);
+      } else if (snippet.content.includes("const ") || snippet.content.includes("if ") || snippet.content.includes("readInput") || snippet.content.includes("readEnv")) {
         setVersion("1.1");
       }
     }
@@ -177,6 +229,16 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
     }
   };
 
+  const handleVersionChange = async (newVersion: string) => {
+    setVersion(newVersion);
+    try {
+      await updateSnippetMetadata({ snippetId: id, metadata: { version: newVersion } });
+      createSnackbar('info', `Version changed to ${newVersion}`);
+    } catch (e) {
+      console.error("Failed to update version:", e);
+    }
+  };
+
   const handleSaveSnippet = async () => {
     setUpdateError(null);
     try {
@@ -189,7 +251,10 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
           console.warn("Auto-format failed, saving current content", fErr);
         }
       }
-      await updateSnippetContent({id: id, content: contentToSave});
+      await updateSnippetContent({id: id, content: contentToSave, version: version});
+      if (snippet && snippet.version !== version) {
+        await updateSnippetMetadata({ snippetId: id, metadata: { version: version } });
+      }
 
       if (autoLint) {
         try {
@@ -202,6 +267,30 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
           }
         } catch (lErr) {
           console.warn("Auto-lint failed", lErr);
+        }
+      }
+
+      // US #16: Auto-run tests after saving
+      if (testCases && testCases.length > 0) {
+        let passed = 0;
+        let failed = 0;
+        let errored = 0;
+        for (const tc of testCases) {
+          try {
+            const res = await runTestCase({snippetId: id, testId: tc.id});
+            if (res.result === 'SUCCESS') passed++;
+            else if (res.result === 'FAILED') failed++;
+            else errored++;
+          } catch {
+            errored++;
+          }
+        }
+        queryClient.invalidateQueries(['testCases', id]);
+        const total = testCases.length;
+        if (failed === 0 && errored === 0) {
+          createSnackbar('success', `All ${total} test(s) passed`);
+        } else {
+          createSnackbar('warning', `Tests: ${passed}/${total} passed, ${failed} failed, ${errored} error(s)`);
         }
       }
     } catch (err: unknown) {
@@ -217,20 +306,23 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
         await cancelExecution({snippetId: id, userId: user?.sub || ''});
     } else { // If not running, start
         try {
+            setBottomTab(0);
             if (snippet && snippet.content !== code) {
                 await handleSaveSnippet();
             }
-            const detectedVersion = (code.includes("const ") || code.includes("if ") || code.includes("readInput") || code.includes("readEnv")) ? "1.1" : version;
             const res = await startExecution({
                 snippetId: id,
                 environment: {}, // Default empty environment
-                version: detectedVersion,
+                version: version,
             });
             setExecutionResult(res);
+            setExecutionId(id);
+            setRunSnippet(true);
         } catch (err: unknown) {
             console.error("Execution error:", err);
             const message = err instanceof Error ? err.message : 'Execution failed';
             createSnackbar('error', message);
+            setRunSnippet(false);
         }
     }
   };
@@ -245,8 +337,15 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
             <Typography fontWeight={"bold"} mb={2} variant="h4">Loading...</Typography>
             <CircularProgress/>
           </>) : <>
-            <Box display="flex" alignItems="center" gap={2} mb={1}>
+            <Box display="flex" alignItems="center" gap={1.5} mb={1}>
               <Typography variant="h4" fontWeight={"bold"}>{snippet?.name ?? "Snippet"}</Typography>
+              <Chip
+                label={`v${version}`}
+                size="small"
+                variant="outlined"
+                color="primary"
+                sx={{ fontWeight: 600 }}
+              />
               {snippet?.compliance && (
                 <Chip
                   label={snippet.compliance.toUpperCase()}
@@ -257,6 +356,33 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                 />
               )}
             </Box>
+            {editingDescription ? (
+              <TextField
+                size="small"
+                autoFocus
+                value={descriptionDraft}
+                onChange={(e) => setDescriptionDraft(e.target.value)}
+                onBlur={() => updateSnippetMetadata({ snippetId: id, metadata: { description: descriptionDraft } })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') updateSnippetMetadata({ snippetId: id, metadata: { description: descriptionDraft } });
+                  if (e.key === 'Escape') setEditingDescription(false);
+                }}
+                placeholder="Add a description..."
+                fullWidth
+                sx={{ mb: 1 }}
+                helperText="Press Enter to save, Escape to cancel"
+              />
+            ) : (
+              <Typography
+                variant="body2"
+                color={snippet?.description ? "text.secondary" : "text.disabled"}
+                mb={1}
+                sx={{ fontStyle: snippet?.description ? 'italic' : 'normal', cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                onClick={() => { setDescriptionDraft(snippet?.description ?? ""); setEditingDescription(true); }}
+              >
+                {snippet?.description || "Click to add a description..."}
+              </Typography>
+            )}
             <Box display="flex" flexDirection="row" gap="8px" padding="8px" alignItems="center" flexWrap="wrap">
               <Tooltip title={"Share"}>
                 <IconButton onClick={() => setShareModalOppened(true)}>
@@ -271,7 +397,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                   <BugReport/>
                 </IconButton>
               </Tooltip>
-              <DownloadButton snippet={snippet}/>
+              <DownloadButton snippet={snippet} onFormatSnippet={formatSnippetAsync}/>
               <Tooltip title={"Upload file"}>
                 <IconButton onClick={() => fileInputRef.current?.click()}>
                   <UploadFile />
@@ -290,7 +416,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                   labelId="version-select-label"
                   value={version}
                   label="Version"
-                  onChange={(e) => setVersion(e.target.value)}
+                  onChange={(e) => handleVersionChange(e.target.value)}
                   size="small"
                 >
                   <MenuItem value="1.0">1.0</MenuItem>
@@ -394,7 +520,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
               {bottomTab === 0 && (
                 <Box>
                   <Alert severity="info" sx={{ mb: 1 }}>Output</Alert>
-                  <SnippetExecution snippetId={id} executionId={executionId} executionStatus={executionResult || executionStatus} />
+                  <SnippetExecution snippetId={id} executionId={executionId} executionStatus={executionStatus || executionResult || undefined} />
                 </Box>
               )}
 

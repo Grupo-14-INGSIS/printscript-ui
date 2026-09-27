@@ -69,6 +69,16 @@ export class FakeSnippetOperations implements SnippetOperations {
         ]);
     }
 
+    searchUsers(_nameQuery: string): Promise<{id: string, name: string}[]> {
+        return Promise.resolve([
+            { id: "user1", name: "alice@example.com" }
+        ]);
+    }
+
+    updateSnippetMetadata(_snippetId: string, _metadata: { description?: string; version?: string }): Promise<void> {
+        return Promise.resolve();
+    }
+
     getFileTypes(): Promise<FileType[]> {
         return Promise.resolve([{ language: "printscript", extension: "ps", version: "1.1" }]);
     }
@@ -109,7 +119,7 @@ export class FakeSnippetOperations implements SnippetOperations {
 
     getSnippetData(id: string): Promise<SnippetData> {
         const snippet = this.fakeStore.getSnippetData(id);
-        return Promise.resolve({ snippetId: snippet.id, name: snippet.name, language: snippet.language });
+        return Promise.resolve({ snippetId: snippet.id, name: snippet.name, language: snippet.language, description: snippet.description, version: snippet.version });
     }
 
     updateSnippetById(id: string, updateSnippet: UpdateSnippet): Promise<Snippet> {

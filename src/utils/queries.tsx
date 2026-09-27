@@ -217,6 +217,8 @@ export const useGetSnippetById = (id: string | null) => {
                 extension: 'ps', // Hardcode to .ps as requested
                 compliance: metadata.compliance || 'pending',
                 author: metadata.author || '',
+                description: metadata.description || '',
+                version: metadata.version || '1.1',
             };
         },
         {
@@ -239,13 +241,34 @@ export const useGetSharedUsers = (snippetId: string) => {
     });
 };
 
+export const useSearchUsers = (nameQuery: string) => {
+    const { apiService } = useServices();
+    return useQuery<{id: string, name: string}[], Error>(
+        ['searchUsers', nameQuery],
+        () => apiService.searchUsers(nameQuery),
+        {
+            enabled: nameQuery.length >= 2, // only search when at least 2 chars typed
+            keepPreviousData: true,
+        }
+    );
+};
+
+export const useUpdateSnippetMetadata = ({onSuccess}: {onSuccess?: () => void} = {}) => {
+    const { apiService } = useServices();
+    return useMutation<void, Error, { snippetId: string; metadata: { description?: string; version?: string } }>(
+        ({snippetId, metadata}) => apiService.updateSnippetMetadata(snippetId, metadata),
+        { onSuccess }
+    );
+};
+
 export const useUpdateSnippetContent = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<void, Error, {
     id: string;
-    content: string
+    content: string;
+    version?: string;
 }> => {
     const { runnerService } = useServices();
-    return useMutation<void, Error, { id: string; content: string }>(
-        ({id, content}: { id: string; content: string }) => runnerService.updateSnippetContent(id, content),{
+    return useMutation<void, Error, { id: string; content: string; version?: string }>(
+        ({id, content, version}: { id: string; content: string; version?: string }) => runnerService.updateSnippetContent(id, content, version),{
             onSuccess,
         }
     );
