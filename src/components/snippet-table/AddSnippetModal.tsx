@@ -1,10 +1,14 @@
 import { v4 as uuidv4 } from 'uuid';
 import {
+    Alert,
     Box,
     Button,
     CircularProgress,
+    FormControl,
     Input,
     InputLabel,
+    MenuItem,
+    Select,
     Typography
 } from "@mui/material";
 import {highlight, languages} from "prismjs";
@@ -30,39 +34,54 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
     const language = "printscript"; // Hardcoded language
     const [code, setCode] = useState(defaultSnippet?.content ?? "");
     const [snippetName, setSnippetName] = useState(defaultSnippet?.name ?? "");
+    const [description, setDescription] = useState(defaultSnippet?.description ?? "");
+    const [version, setVersion] = useState<string>(defaultSnippet?.version ?? "1.1");
+    const [validationError, setValidationError] = useState<string | null>(null);
     const {createSnackbar} = useSnackbarContext();
     const {mutateAsync: createSnippet, isLoading: loadingSnippet} = useCreateSnippet({
         onSuccess: () => {
             queryClient.invalidateQueries('listSnippets');
             createSnackbar('success', 'Snippet created successfully');
+            setValidationError(null);
             onClose();
         }
     })
     const {data: fileTypes} = useGetFileTypes();
 
     const handleCreateSnippet = async () => {
+        setValidationError(null);
         try {
             const newSnippet: CreateSnippet = {
                 id: uuidv4(),
                 name: snippetName,
                 content: code,
                 language: language,
-                extension: fileTypes?.find((f: FileType) => f.language === language)?.extension ?? "ps"
+                extension: fileTypes?.find((f: FileType) => f.language === language)?.extension ?? "ps",
+                description: description,
+                version: version,
             }
             await createSnippet(newSnippet);
         } catch (err: unknown) {
             console.error("Error creating snippet:", err);
             const message = err instanceof Error ? err.message : 'Failed to create snippet';
+            setValidationError(message);
             createSnackbar('error', message);
         }
     }
 
     useEffect(() => {
         if (defaultSnippet) {
-            setCode(defaultSnippet?.content)
-            setSnippetName(defaultSnippet?.name)
+            setCode(defaultSnippet?.content);
+            setSnippetName(defaultSnippet?.name);
+            setValidationError(null);
         }
     }, [defaultSnippet]);
+
+    useEffect(() => {
+        if (!open) {
+            setValidationError(null);
+        }
+    }, [open]);
 
     return (
         <ModalWrapper open={open} onClose={onClose}>
@@ -87,10 +106,43 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
                 flexDirection: 'column',
                 gap: '16px'
             }}>
-                <InputLabel htmlFor="name">Name</InputLabel>
-                <Input onChange={e => setSnippetName(e.target.value)} value={snippetName} id="name"
-                       sx={{width: '50%'}}/>
+                <Box display="flex" gap={2} alignItems="flex-start">
+                    <Box flex={1}>
+                        <InputLabel htmlFor="name">Name</InputLabel>
+                        <Input onChange={e => setSnippetName(e.target.value)} value={snippetName} id="name"
+                               fullWidth />
+                    </Box>
+                    <Box width="140px">
+                        <InputLabel id="version-label">Version</InputLabel>
+                        <FormControl fullWidth size="small" variant="standard">
+                            <Select
+                                labelId="version-label"
+                                value={version}
+                                onChange={e => setVersion(e.target.value)}
+                            >
+                                <MenuItem value="1.0">1.0</MenuItem>
+                                <MenuItem value="1.1">1.1</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </Box>
+                </Box>
+                <Box>
+                    <InputLabel htmlFor="description">Description (optional)</InputLabel>
+                    <Input
+                        onChange={e => setDescription(e.target.value)}
+                        value={description}
+                        id="description"
+                        multiline
+                        placeholder="Brief description of what this snippet does"
+                        fullWidth
+                    />
+                </Box>
             </Box>
+            {validationError && (
+                <Alert severity="error" sx={{ whiteSpace: 'pre-wrap', my: 1 }}>
+                    {validationError}
+                </Alert>
+            )}
             <InputLabel>Code Snippet (PrintScript)</InputLabel>
             <Box width={"100%"} sx={{
                 backgroundColor: 'black', color: 'white', borderRadius: "8px",

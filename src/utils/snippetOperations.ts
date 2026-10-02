@@ -1,7 +1,8 @@
 import {Rule} from "../types/Rule.ts";
 import {FileType} from "../types/FileType.ts";
-import {CreateSnippet, PaginatedSnippets, Snippet, SnippetData} from "./snippet.ts";
-import { StartExecutionResponse, ExecutionStatus, SharedUser } from "../types/runner.ts"; // Import new types
+import {CreateSnippet, PaginatedSnippets, Snippet, SnippetData, SnippetFilters} from "./snippet.ts";
+import { StartExecutionResponse, ExecutionStatus, SharedUser } from "../types/runner.ts";
+import { TestCase, CreateTestCase, TestCaseResult } from "../types/TestCase.ts";
 
 export interface SnippetOperations {
     getFormatRules(): Promise<Rule[]>
@@ -10,17 +11,28 @@ export interface SnippetOperations {
 
     getFileTypes(): Promise<FileType[]>
 
-    modifyFormatRule(newRules: Rule[], language?: string): Promise<void>
+    modifyFormatRule(newRules: Rule[], language?: string, applyToSnippets?: boolean): Promise<void>
 
-    modifyLintingRule(newRules: Rule[], language?: string): Promise<void>
+    modifyLintingRule(newRules: Rule[], language?: string, applyToSnippets?: boolean): Promise<void>
+
+    registerUser(email: string): Promise<void>
 
     createSnippet(createSnippet: CreateSnippet, userId?: string): Promise<void>
 
-    getTestCases(snippetId: string): Promise<string[]>
+    // --- Test Cases ---
+    getTestCases(snippetId: string): Promise<TestCase[]>
 
-    removeTestCase(id: string): Promise<string>
+    createTestCase(snippetId: string, testCase: CreateTestCase): Promise<{ testId: string }>
+
+    removeTestCase(snippetIdOrTestId: string, testId?: string): Promise<string>
+
+    deleteTestCase(snippetId: string, testId: string): Promise<void>
+
+    runTestCase(snippetId: string, testId: string): Promise<TestCaseResult>
 
     formatSnippet(snippet: string): Promise<string>
+
+    lintSnippet(snippet: string): Promise<string>
 
     deleteSnippet(id: string): Promise<string>
 
@@ -30,7 +42,11 @@ export interface SnippetOperations {
 
     getSharedUsers(snippetId: string): Promise<SharedUser[]>
 
-    listSnippetDescriptors(page: number,pageSize: number,snippetName?: string): Promise<PaginatedSnippets>
+    searchUsers(nameQuery: string): Promise<{id: string, name: string}[]>
+
+    updateSnippetMetadata(snippetId: string, metadata: { description?: string; version?: string }): Promise<void>
+
+    listSnippetDescriptors(page: number,pageSize: number,filters?: SnippetFilters): Promise<PaginatedSnippets>
 
     // --- Execution Methods ---
     startExecution(snippetId: string, environment: Record<string, string>, version: string): Promise<StartExecutionResponse>

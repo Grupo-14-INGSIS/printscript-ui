@@ -30,7 +30,14 @@ export class RunnerService {
 
         if (!response.ok) {
             const errorBody = await response.text();
-            throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
+            let parsedMessage = errorBody;
+            try {
+                const json = JSON.parse(errorBody);
+                parsedMessage = json.message || json.error || errorBody;
+            } catch {
+                parsedMessage = errorBody;
+            }
+            throw new Error(parsedMessage || `HTTP error! status: ${response.status}`);
         }
 
         const text = await response.text();
@@ -43,7 +50,7 @@ export class RunnerService {
     }
 
     async createSnippet(snippet: CreateSnippet, userId?: string): Promise<void> {
-        const { id, content, name, language } = snippet;
+        const { id, content, name, language, description, version } = snippet;
         await this.request<void>(`/api/v1/snippet/snippets/${id}`, {
             method: 'PUT',
             body: JSON.stringify({
@@ -51,6 +58,8 @@ export class RunnerService {
                 name: name || 'Snippet',
                 language: language || 'printscript',
                 snippet: content,
+                description: description || '',
+                version: version || '1.1',
             }),
         });
     }
@@ -93,11 +102,12 @@ export class RunnerService {
         });
     }
 
-    async updateSnippetContent(id: string, content: string): Promise<void> {
+    async updateSnippetContent(id: string, content: string, version?: string): Promise<void> {
         await this.request<void>(`/api/v1/snippet/snippets/${id}`, {
             method: 'PATCH',
             body: JSON.stringify({
                 snippet: content,
+                ...(version && { version }),
             }),
         });
     }

@@ -1,10 +1,12 @@
 import {useMutation, UseMutationResult, useQuery} from 'react-query';
 import {Rule} from "../types/Rule.ts";
 import {FileType} from "../types/FileType.ts";
-import {CreateSnippet, PaginatedSnippets, Snippet} from "./snippet.ts";
+import {CreateSnippet, PaginatedSnippets, Snippet, SnippetFilters} from "./snippet.ts";
 import { useServices } from '../contexts/serviceContext.tsx';
 import { useAuth0 } from '@auth0/auth0-react';
 import { StartExecutionResponse, ExecutionStatus, SharedUser } from '../types/runner.ts';
+import { TestCase, CreateTestCase, TestCaseResult } from '../types/TestCase.ts';
+import { queryClient } from '../App.tsx';
 
 export const useGetFormatRules = () => {
   const { apiService } = useServices();
@@ -13,8 +15,13 @@ export const useGetFormatRules = () => {
 
 export const useModifyFormatRules = ({onSuccess}: {onSuccess: () => void}) => {
   const { apiService } = useServices();
-  return useMutation<void, Error, Rule[]>(
-      (rule: Rule[]) => apiService.modifyFormatRule(rule),
+  return useMutation<void, Error, { rules: Rule[]; applyToSnippets?: boolean } | Rule[]>(
+      (payload) => {
+        if (Array.isArray(payload)) {
+          return apiService.modifyFormatRule(payload);
+        }
+        return apiService.modifyFormatRule(payload.rules, "printscript", payload.applyToSnippets);
+      },
       {onSuccess}
   );
 }
@@ -26,8 +33,13 @@ export const useGetLintingRules = () => {
 
 export const useModifyLintingRules = ({onSuccess}: {onSuccess: () => void}) => {
   const { apiService } = useServices();
-  return useMutation<void, Error, Rule[]>(
-      (rule: Rule[]) => apiService.modifyLintingRule(rule),
+  return useMutation<void, Error, { rules: Rule[]; applyToSnippets?: boolean } | Rule[]>(
+      (payload) => {
+        if (Array.isArray(payload)) {
+          return apiService.modifyLintingRule(payload);
+        }
+        return apiService.modifyLintingRule(payload.rules, "printscript", payload.applyToSnippets);
+      },
       {onSuccess}
   );
 }
@@ -98,16 +110,60 @@ export const useCreateSnippet = ({onSuccess}: {onSuccess: () => void}): UseMutat
 
 export const useGetTestCases = (snippetId: string | null) => {
     const { apiService } = useServices();
-    return useQuery<string[], Error>(['testCases', snippetId], () => apiService.getTestCases(snippetId!), {
+    return useQuery<TestCase[], Error>(['testCases', snippetId], () => apiService.getTestCases(snippetId!), {
         enabled: !!snippetId,
     });
 };
 
-export const useRemoveTestCase = ({onSuccess}: {onSuccess: () => void}) => {
+export const useCreateTestCase = ({onSuccess}: {onSuccess?: (data: { testId: string }) => void} = {}) => {
+    const { apiService } = useServices();
+    return useMutation<{ testId: string }, Error, { snippetId: string; testCase: CreateTestCase }>(
+        ({snippetId, testCase}) => apiService.createTestCase(snippetId, testCase),
+        {
+            onSuccess: (data, variables) => {
+                queryClient.invalidateQueries(['testCases', variables.snippetId]);
+                queryClient.invalidateQueries('testCases');
+                if (onSuccess) {
+                    onSuccess(data);
+                }
+            },
+        }
+    );
+};
+
+export const useRemoveTestCase = ({onSuccess}: {onSuccess?: () => void} = {}) => {
     const { apiService } = useServices();
     return useMutation<string, Error, string>(
         ['removeTestCase'],
         (id: string) => apiService.removeTestCase(id),
+        {
+            onSuccess,
+        }
+    );
+};
+
+export const useDeleteTestCase = ({onSuccess}: {onSuccess?: () => void} = {}) => {
+    const { apiService } = useServices();
+    return useMutation<void, Error, { snippetId: string; testId: string }>(
+        ['deleteTestCase'],
+        ({snippetId, testId}) => apiService.deleteTestCase(snippetId, testId),
+        {
+            onSuccess: (_data, variables) => {
+                queryClient.invalidateQueries(['testCases', variables.snippetId]);
+                queryClient.invalidateQueries('testCases');
+                if (onSuccess) {
+                    onSuccess();
+                }
+            },
+        }
+    );
+};
+
+export const useRunTestCase = ({onSuccess}: {onSuccess?: (result: TestCaseResult, variables: { snippetId: string; testId: string }) => void} = {}) => {
+    const { apiService } = useServices();
+    return useMutation<TestCaseResult, Error, { snippetId: string; testId: string }>(
+        ['runTestCase'],
+        ({snippetId, testId}) => apiService.runTestCase(snippetId, testId),
         {
             onSuccess,
         }
@@ -128,6 +184,13 @@ export const useFormatSnippet = () => {
     const { apiService } = useServices();
     return useMutation<string, Error, string>(
         (snippetContent: string) => apiService.formatSnippet(snippetContent)
+    );
+}
+
+export const useLintSnippet = () => {
+    const { apiService } = useServices();
+    return useMutation<string, Error, string>(
+        (snippetContent: string) => apiService.lintSnippet(snippetContent)
     );
 }
 
@@ -152,8 +215,10 @@ export const useGetSnippetById = (id: string | null) => {
                 language: metadata.language,
                 content: content,
                 extension: 'ps', // Hardcode to .ps as requested
-                compliance: 'pending', // Default value
-                author: '', // Not provided by these endpoints
+                compliance: metadata.compliance || 'pending',
+                author: metadata.author || '',
+                description: metadata.description || '',
+                version: metadata.version || '1.1',
             };
         },
         {
@@ -176,19 +241,40 @@ export const useGetSharedUsers = (snippetId: string) => {
     });
 };
 
+export const useSearchUsers = (nameQuery: string) => {
+    const { apiService } = useServices();
+    return useQuery<{id: string, name: string}[], Error>(
+        ['searchUsers', nameQuery],
+        () => apiService.searchUsers(nameQuery),
+        {
+            enabled: nameQuery.length >= 2, // only search when at least 2 chars typed
+            keepPreviousData: true,
+        }
+    );
+};
+
+export const useUpdateSnippetMetadata = ({onSuccess}: {onSuccess?: () => void} = {}) => {
+    const { apiService } = useServices();
+    return useMutation<void, Error, { snippetId: string; metadata: { description?: string; version?: string } }>(
+        ({snippetId, metadata}) => apiService.updateSnippetMetadata(snippetId, metadata),
+        { onSuccess }
+    );
+};
+
 export const useUpdateSnippetContent = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<void, Error, {
     id: string;
-    content: string
+    content: string;
+    version?: string;
 }> => {
     const { runnerService } = useServices();
-    return useMutation<void, Error, { id: string; content: string }>(
-        ({id, content}: { id: string; content: string }) => runnerService.updateSnippetContent(id, content),{
+    return useMutation<void, Error, { id: string; content: string; version?: string }>(
+        ({id, content, version}: { id: string; content: string; version?: string }) => runnerService.updateSnippetContent(id, content, version),{
             onSuccess,
         }
     );
 };
 
-export const useGetSnippets = (page: number = 0, pageSize: number = 10, snippetName?: string) => {
+export const useGetSnippets = (page: number = 0, pageSize: number = 10, filters?: SnippetFilters) => {
     const { apiService } = useServices();
-    return useQuery<PaginatedSnippets, Error>(['listSnippets', page,pageSize,snippetName], () => apiService.listSnippetDescriptors(page, pageSize,snippetName));
+    return useQuery<PaginatedSnippets, Error>(['listSnippets', page, pageSize, filters], () => apiService.listSnippetDescriptors(page, pageSize, filters));
 };

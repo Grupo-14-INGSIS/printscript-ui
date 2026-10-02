@@ -14,6 +14,8 @@ export type CreateSnippet = {
   content: string;
   language: string;
   extension: string;
+  description?: string;
+  version?: string;
 }
 
 export type CreateSnippetWithLang = CreateSnippet & { language: string }
@@ -26,6 +28,11 @@ export type SnippetData = {
     snippetId: string;
     name: string;
     language: string;
+    compliance?: ComplianceEnum;
+    status?: string;
+    author?: string;
+    description?: string;
+    version?: string;
 };
 
 export type Snippet = CreateSnippet & {
@@ -35,10 +42,26 @@ export type Snippet = CreateSnippet & {
 type SnippetStatus = {
   compliance: ComplianceEnum;
   author: string;
+  description?: string;
+  version?: string;
 }
 export type PaginatedSnippets = Pagination & {
   snippets: Snippet[]
 }
+
+export type AuthorRelationFilter = 'all' | 'owner' | 'shared';
+export type ComplianceFilter = 'all' | ComplianceEnum;
+export type SortOrder = 'asc' | 'desc';
+export type SnippetSortBy = 'name' | 'language' | 'author' | 'compliance';
+
+export type SnippetFilters = {
+    name?: string;
+    authorRelation?: AuthorRelationFilter;
+    language?: string;
+    compliance?: ComplianceFilter;
+    sortBy?: SnippetSortBy;
+    sortOrder?: SortOrder;
+};
 
 export const getFileLanguage = (fileTypes: FileType[], fileExt?: string) => {
   return fileExt && fileTypes?.find(x => x.extension == fileExt)

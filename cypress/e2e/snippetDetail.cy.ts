@@ -47,4 +47,12 @@ describe('Add snippet tests', () => {
   it('Can delete snippets', function() {
     cy.get('[data-testid="DeleteIcon"] > path').click();
   });
+
+  it('Can open test snippet modal and view test interface', function() {
+    cy.get('[data-testid="BugReportIcon"]').click();
+    cy.contains('Tests for').should('be.visible');
+    cy.contains('Create New Test').click();
+    cy.contains('Save Test').should('be.visible');
+  });
 })
+

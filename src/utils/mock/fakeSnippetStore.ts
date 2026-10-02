@@ -1,7 +1,8 @@
-import {CreateSnippet, PaginatedSnippets, Snippet} from "../snippet.ts";
+import {CreateSnippet, PaginatedSnippets, Snippet, SnippetFilters} from "../snippet.ts";
 import {FileType} from "../../types/FileType.ts"; // Corrected path
 import {StartExecutionResponse, ExecutionStatus, ExecutionEventType} from "../../types/runner.ts"; // Corrected path
 import {Rule} from "../../types/Rule.ts";
+import {TestCase, CreateTestCase, TestCaseResult} from "../../types/TestCase.ts";
 
 export class FakeSnippetStore {
     public snippets: Snippet[] = [
@@ -115,12 +116,32 @@ export class FakeSnippetStore {
         }
     ];
 
-    listSnippetDescriptors(page: number = 0, pageSize: number = 10, snippetName?: string): PaginatedSnippets {
-        let filteredSnippets = this.snippets;
-        if (snippetName && snippetName.trim() !== "") {
-            const term = snippetName.trim().toLowerCase();
-            filteredSnippets = this.snippets.filter(s => s.name.toLowerCase().includes(term));
+    listSnippetDescriptors(page: number = 0, pageSize: number = 10, filters?: SnippetFilters): PaginatedSnippets {
+        let filteredSnippets = [...this.snippets];
+        if (filters?.name && filters.name.trim() !== "") {
+            const term = filters.name.trim().toLowerCase();
+            filteredSnippets = filteredSnippets.filter(s => s.name.toLowerCase().includes(term));
         }
+        if (filters?.authorRelation && filters.authorRelation !== 'all') {
+            filteredSnippets = filteredSnippets.filter(s => s.author.toLowerCase() === filters.authorRelation?.toLowerCase());
+        }
+        if (filters?.language && filters.language !== 'all') {
+            filteredSnippets = filteredSnippets.filter(s => s.language.toLowerCase() === filters.language?.toLowerCase());
+        }
+        if (filters?.compliance && filters.compliance !== 'all') {
+            filteredSnippets = filteredSnippets.filter(s => s.compliance === filters.compliance);
+        }
+
+        if (filters?.sortBy) {
+            const sortBy = filters.sortBy;
+            const sortOrder = filters.sortOrder === 'desc' ? -1 : 1;
+            filteredSnippets.sort((a, b) => {
+                const valA = (a[sortBy] || '').toString().toLowerCase();
+                const valB = (b[sortBy] || '').toString().toLowerCase();
+                return valA.localeCompare(valB) * sortOrder;
+            });
+        }
+
         const start = page * pageSize;
         const end = start + pageSize;
         const pagedSnippets = filteredSnippets.slice(start, end);
@@ -155,6 +176,53 @@ export class FakeSnippetStore {
         const snippet = this.snippets.find(s => s.id === id);
         if (!snippet) throw new Error("Snippet not found");
         return snippet;
+    }
+
+    // Tests mock storage
+    public tests: Record<string, TestCase[]> = {};
+
+    getTests(snippetId: string): TestCase[] {
+        return this.tests[snippetId] || [];
+    }
+
+    createTest(snippetId: string, testCase: CreateTestCase): string {
+        const testId = `test-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+        if (!this.tests[snippetId]) {
+            this.tests[snippetId] = [];
+        }
+        this.tests[snippetId].push({
+            id: testId,
+            name: testCase.name || `Test ${this.tests[snippetId].length + 1}`,
+            snippetId,
+            input: testCase.input,
+            output: testCase.expected,
+            expected: testCase.expected,
+            version: testCase.version || '1.0',
+            environment: testCase.environment || {},
+        });
+        return testId;
+    }
+
+    deleteTest(snippetId: string, testId: string): void {
+        if (this.tests[snippetId]) {
+            this.tests[snippetId] = this.tests[snippetId].filter(t => t.id !== testId);
+        }
+    }
+
+    runTest(snippetId: string, testId: string): TestCaseResult {
+        const test = (this.tests[snippetId] || []).find(t => t.id === testId);
+        if (!test) {
+            return {
+                actual: [],
+                result: 'ERROR',
+                message: 'Test not found',
+            };
+        }
+        return {
+            actual: test.expected || test.output || [],
+            result: 'SUCCESS',
+            message: 'Test executed successfully',
+        };
     }
 
     // Placeholder for other SnippetOperations methods if needed by tests

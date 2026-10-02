@@ -1,11 +1,13 @@
 import { Rule } from "../types/Rule.ts";
 import { BACKEND_URL } from "../utils/constants.ts";
 import { SnippetOperations } from "../utils/snippetOperations.ts";
-import { CreateSnippet, PaginatedSnippets, Snippet, SnippetData, UpdateSnippet } from "../utils/snippet.ts";
+import { ComplianceEnum, CreateSnippet, PaginatedSnippets, Snippet, SnippetData, SnippetFilters, UpdateSnippet } from "../utils/snippet.ts";
 import { FileType } from "../types/FileType.ts";
 import { GetTokenSilentlyOptions } from "@auth0/auth0-react";
 import { StartExecutionResponse, ExecutionStatus, CancelExecutionRequest, SharedUser } from '../types/runner.ts';
+import { TestCase, CreateTestCase, TestCaseResult } from '../types/TestCase.ts';
 import { formatPrintScriptCode } from "../utils/formatter.ts";
+import { lintPrintScriptCode } from "../utils/linter.ts";
 
 export class ApiSnippetOperations implements SnippetOperations {
 
@@ -30,11 +32,23 @@ export class ApiSnippetOperations implements SnippetOperations {
 
         if (!response.ok) {
             const errorBody = await response.text();
-            throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
+            let parsedMessage = errorBody;
+            try {
+                const json = JSON.parse(errorBody);
+                parsedMessage = json.message || json.error || errorBody;
+            } catch {
+                parsedMessage = errorBody;
+            }
+            throw new Error(parsedMessage || `HTTP error! status: ${response.status}`);
         }
 
         const text = await response.text();
-        return text ? JSON.parse(text) : ({} as T);
+        if (!text) return {} as T;
+        try {
+            return JSON.parse(text);
+        } catch {
+            return text as unknown as T;
+        }
     }
 
     // --- Rules ---
@@ -49,7 +63,7 @@ export class ApiSnippetOperations implements SnippetOperations {
         }));
     }
 
-    modifyFormatRule(rules: Rule[], language = "printscript"): Promise<void> {
+    modifyFormatRule(rules: Rule[], language = "printscript", applyToSnippets = true): Promise<void> {
         const rulesMap = rules.reduce((acc, rule) => {
             if (rule.value === undefined || typeof rule.value === 'boolean') {
                 acc[rule.name] = rule.isActive;
@@ -65,6 +79,7 @@ export class ApiSnippetOperations implements SnippetOperations {
                 task: 'formatting',
                 language,
                 rules: rulesMap,
+                applyToSnippets,
             }),
         });
     }
@@ -79,7 +94,7 @@ export class ApiSnippetOperations implements SnippetOperations {
         }));
     }
 
-    modifyLintingRule(rules: Rule[], language = "printscript"): Promise<void> {
+    modifyLintingRule(rules: Rule[], language = "printscript", applyToSnippets = true): Promise<void> {
         const rulesMap = rules.reduce((acc, rule) => {
             if (rule.value === undefined || typeof rule.value === 'boolean') {
                 acc[rule.name] = rule.isActive;
@@ -95,37 +110,77 @@ export class ApiSnippetOperations implements SnippetOperations {
                 task: 'linting',
                 language,
                 rules: rulesMap,
+                applyToSnippets,
             }),
         });
     }
     
     // --- Snippets ---
 
-    async listSnippetDescriptors(page: number, pageSize: number, snippetName?: string): Promise<PaginatedSnippets> {
+    registerUser(email: string): Promise<void> {
+        return this.request<void>('/api/v1/users', {
+            method: 'PUT',
+            body: JSON.stringify({ email })
+        });
+    }
+
+    async listSnippetDescriptors(page: number, pageSize: number, filters?: SnippetFilters): Promise<PaginatedSnippets> {
         const params = new URLSearchParams({
             page: String(page),
             pageSize: String(pageSize),
         });
-        if (snippetName) {
-            params.append('name', snippetName);
+        if (filters?.name && filters.name.trim() !== '') {
+            params.append('name', filters.name.trim());
+        }
+        if (filters?.authorRelation && filters.authorRelation !== 'all') {
+            params.append('relation', filters.authorRelation);
+        }
+        if (filters?.language && filters.language !== 'all') {
+            params.append('language', filters.language);
+        }
+        if (filters?.compliance && filters.compliance !== 'all') {
+            params.append('compliance', filters.compliance);
+        }
+        if (filters?.sortBy) {
+            params.append('sortBy', filters.sortBy);
+            params.append('sortOrder', filters.sortOrder ?? 'asc');
         }
         
-        const snippetsMap = await this.request<Record<string, { name: string; language: string; permission: string }>>(`/api/v1/snippets?${params.toString()}`);
+        const snippetsMap = await this.request<Record<string, { name: string; language: string; permission?: string; author?: string; compliance?: ComplianceEnum; status?: string }>>(`/api/v1/snippets?${params.toString()}`);
 
         const snippetsArray: Snippet[] = Object.entries(snippetsMap).map(([id, details]) => ({
             id: id,
             name: details.name,
             language: details.language,
-            author: details.permission, // Using role as author for now
+            author: details.author || details.permission || '', // Support permission or author
             content: '', // This endpoint does not provide content
             extension: '', // This endpoint does not provide extension
-            compliance: 'pending', // Default value
+            compliance: (details.compliance || details.status || 'pending') as ComplianceEnum,
         }));
 
         let filteredSnippets = snippetsArray;
-        if (snippetName && snippetName.trim() !== "") {
-            const term = snippetName.trim().toLowerCase();
-            filteredSnippets = snippetsArray.filter(s => s.name.toLowerCase().includes(term));
+        if (filters?.name && filters.name.trim() !== "") {
+            const term = filters.name.trim().toLowerCase();
+            filteredSnippets = filteredSnippets.filter(s => s.name.toLowerCase().includes(term));
+        }
+        if (filters?.authorRelation && filters.authorRelation !== 'all') {
+            filteredSnippets = filteredSnippets.filter(s => s.author.toLowerCase() === filters.authorRelation?.toLowerCase());
+        }
+        if (filters?.language && filters.language !== 'all') {
+            filteredSnippets = filteredSnippets.filter(s => s.language.toLowerCase() === filters.language?.toLowerCase());
+        }
+        if (filters?.compliance && filters.compliance !== 'all') {
+            filteredSnippets = filteredSnippets.filter(s => s.compliance === filters.compliance);
+        }
+
+        if (filters?.sortBy) {
+            const sortBy = filters.sortBy;
+            const sortOrder = filters.sortOrder === 'desc' ? -1 : 1;
+            filteredSnippets.sort((a, b) => {
+                const valA = (a[sortBy] || '').toString().toLowerCase();
+                const valB = (b[sortBy] || '').toString().toLowerCase();
+                return valA.localeCompare(valB) * sortOrder;
+            });
         }
 
         const start = page * pageSize;
@@ -147,6 +202,7 @@ export class ApiSnippetOperations implements SnippetOperations {
                 userId: userId ?? '',
                 name: createSnippet.name,
                 language: createSnippet.language,
+                description: createSnippet.description ?? '',
             }),
         });
     }
@@ -168,15 +224,163 @@ export class ApiSnippetOperations implements SnippetOperations {
         return this.request<SharedUser[]>(`/api/v1/snippets/${snippetId}/permission`);
     }
 
+    async searchUsers(nameQuery: string): Promise<{id: string, name: string}[]> {
+        const params = new URLSearchParams();
+        if (nameQuery.trim()) params.append('name', nameQuery.trim());
+        return this.request<{id: string, name: string}[]>(`/api/v1/users?${params.toString()}`);
+    }
+
+    updateSnippetMetadata(snippetId: string, metadata: { description?: string; version?: string }): Promise<void> {
+        return this.request<void>(`/api/v1/snippets/${snippetId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(metadata),
+        });
+    }
+
     // Métodos no implementados (placeholders)
     getFileTypes(): Promise<FileType[]> {
         return Promise.resolve([{ language: "printscript", extension: "ps", version: "1.1" }]);
     }
-    getTestCases(snippetId: string): Promise<string[]> {
-        return this.request<string[]>(`/api/v1/snippets/${snippetId}/tests`);
+    async getTestCases(snippetId: string): Promise<TestCase[]> {
+        const response = await this.request<unknown>(`/api/v1/snippets/${snippetId}/tests`);
+
+        if (!response) {
+            return [];
+        }
+
+        const mapItem = (test: Record<string, unknown>, idFallback: string, index: number): TestCase => {
+            const id = test.id ?? test.testId ?? test._id ?? idFallback;
+            const rawInput = test.input ?? test.inputs ?? test.inputArguments ?? [];
+            const rawOutput = test.output ?? test.outputs ?? test.expected ?? test.expectedOutputs ?? test.expectedOutput ?? [];
+            
+            const toArray = (val: unknown): string[] => {
+                if (Array.isArray(val)) {
+                    return val.map((item) => String(item));
+                }
+                if (val !== undefined && val !== null) {
+                    return [String(val)];
+                }
+                return [];
+            };
+
+            const input = toArray(rawInput);
+            const output = toArray(rawOutput);
+            const name = test.name ?? test.testName ?? test.description ?? `Test #${index + 1}`;
+            const env = (test.environment ?? test.env ?? {}) as Record<string, string>;
+
+            return {
+                id: String(id),
+                name: String(name),
+                snippetId: typeof test.snippetId === 'string' ? test.snippetId : snippetId,
+                input: input,
+                output: output,
+                expected: output,
+                version: typeof test.version === 'string' ? test.version : '1.0',
+                environment: typeof env === 'object' && env !== null ? env : {},
+            };
+        };
+
+        if (Array.isArray(response)) {
+            return response.map((test, idx) => mapItem(test as Record<string, unknown>, `test-${idx + 1}`, idx));
+        }
+
+        if (typeof response === 'object' && response !== null) {
+            const obj = response as Record<string, unknown>;
+            const list = obj.tests ?? obj.testCases ?? obj.content ?? obj.data;
+            if (Array.isArray(list)) {
+                return list.map((test, idx) => mapItem(test as Record<string, unknown>, `test-${idx + 1}`, idx));
+            }
+
+            return Object.entries(obj).map(([key, value], idx) => {
+                const testObj = (value && typeof value === 'object') ? (value as Record<string, unknown>) : { name: key };
+                return mapItem(testObj, key, idx);
+            });
+        }
+
+        return [];
     }
-    removeTestCase(_id: string): Promise<string> {
-        throw new Error("Method not implemented.");
+
+    createTestCase(snippetId: string, testCase: CreateTestCase): Promise<{ testId: string }> {
+        return this.request<{ testId: string }>(`/api/v1/snippets/${snippetId}/tests`, {
+            method: 'POST',
+            body: JSON.stringify({
+                name: testCase.name || 'Test',
+                testName: testCase.name || 'Test',
+                input: testCase.input || [],
+                inputs: testCase.input || [],
+                output: testCase.expected || [],
+                outputs: testCase.expected || [],
+                expected: testCase.expected || [],
+                expectedOutputs: testCase.expected || [],
+                version: testCase.version || '1.0',
+                environment: testCase.environment || {},
+            }),
+        });
+    }
+
+    async removeTestCase(snippetIdOrTestId: string, testId?: string): Promise<string> {
+        if (testId) {
+            await this.deleteTestCase(snippetIdOrTestId, testId);
+            return testId;
+        }
+        await this.request<void>(`/api/v1/tests/${snippetIdOrTestId}`, {
+            method: 'DELETE',
+        });
+        return snippetIdOrTestId;
+    }
+
+    deleteTestCase(snippetId: string, testId: string): Promise<void> {
+        return this.request<void>(`/api/v1/snippets/${snippetId}/tests/${testId}`, {
+            method: 'DELETE',
+        });
+    }
+
+    async runTestCase(snippetId: string, testId: string): Promise<TestCaseResult> {
+        const res = await this.request<unknown>(`/api/v1/snippets/${snippetId}/tests/${testId}`, {
+            method: 'PUT',
+        });
+
+        if (typeof res === 'string') {
+            const upper = res.toUpperCase();
+            const result = (upper.includes('SUCCESS') || upper.includes('PASS')) ? 'SUCCESS' : (upper.includes('FAIL') ? 'FAILED' : 'ERROR');
+            return {
+                actual: [],
+                result: result as 'SUCCESS' | 'FAILED' | 'ERROR',
+                message: res,
+            };
+        }
+
+        if (typeof res === 'object' && res !== null) {
+            const obj = res as Record<string, unknown>;
+            let resultStatus: 'SUCCESS' | 'FAILED' | 'ERROR' = 'ERROR';
+            const rawStatus = String(obj.result ?? obj.status ?? (obj.success === true ? 'SUCCESS' : obj.success === false ? 'FAILED' : 'SUCCESS')).toUpperCase();
+            if (rawStatus.includes('SUCCESS') || rawStatus.includes('PASS')) {
+                resultStatus = 'SUCCESS';
+            } else if (rawStatus.includes('FAIL')) {
+                resultStatus = 'FAILED';
+            }
+
+            const actual = obj.actual ?? obj.actualOutput ?? obj.outputs ?? obj.output ?? [];
+            const actualList = Array.isArray(actual)
+                ? actual.map((item) => String(item))
+                : (actual !== undefined && actual !== null ? [String(actual)] : []);
+
+            const message = typeof obj.message === 'string'
+                ? obj.message
+                : (typeof obj.error === 'string' ? obj.error : '');
+
+            return {
+                actual: actualList,
+                result: resultStatus,
+                message: message,
+            };
+        }
+
+        return {
+            actual: [],
+            result: 'SUCCESS',
+            message: 'Test executed successfully',
+        };
     }
     async formatSnippet(snippet: string): Promise<string> {
         try {
@@ -184,6 +388,16 @@ export class ApiSnippetOperations implements SnippetOperations {
             return formatPrintScriptCode(snippet, rules);
         } catch (_error) {
             return formatPrintScriptCode(snippet, []);
+        }
+    }
+    async lintSnippet(snippet: string): Promise<string> {
+        try {
+            const rules = await this.getLintingRules("printscript");
+            const result = lintPrintScriptCode(snippet, rules);
+            return result.summary;
+        } catch (_error) {
+            const result = lintPrintScriptCode(snippet, []);
+            return result.summary;
         }
     }
     getSnippetData(id: string): Promise<SnippetData> {

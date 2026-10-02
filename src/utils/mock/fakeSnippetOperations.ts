@@ -1,8 +1,9 @@
 import { SnippetOperations } from "../snippetOperations.ts";
-import { CreateSnippet, PaginatedSnippets, Snippet, SnippetData, UpdateSnippet } from "../snippet.ts";
+import { CreateSnippet, PaginatedSnippets, Snippet, SnippetData, SnippetFilters, UpdateSnippet } from "../snippet.ts";
 import { FileType } from "../../types/FileType.ts"; // Corrected path
 import { StartExecutionResponse, ExecutionStatus, SharedUser } from "../../types/runner.ts"; // Corrected path
 import { Rule } from "../../types/Rule.ts"; // Corrected path
+import { TestCase, CreateTestCase, TestCaseResult } from "../../types/TestCase.ts";
 import { FakeSnippetStore } from "./fakeSnippetStore.ts"; // Added import for FakeSnippetStore
 import { formatPrintScriptCode } from "../formatter.ts";
 
@@ -15,7 +16,7 @@ export class FakeSnippetOperations implements SnippetOperations {
         return Promise.resolve([]);
     }
 
-    modifyFormatRule(_newRules: Rule[], _language?: string): Promise<void> {
+    modifyFormatRule(_newRules: Rule[], _language?: string, _applyToSnippets?: boolean): Promise<void> {
         return Promise.resolve();
     }
 
@@ -23,13 +24,17 @@ export class FakeSnippetOperations implements SnippetOperations {
         return Promise.resolve([]);
     }
 
-    modifyLintingRule(_newRules: Rule[], _language?: string): Promise<void> {
+    modifyLintingRule(_newRules: Rule[], _language?: string, _applyToSnippets?: boolean): Promise<void> {
         return Promise.resolve();
     }
 
     // --- Snippets ---
-    listSnippetDescriptors(page: number, pageSize: number, snippetName?: string): Promise<PaginatedSnippets> {
-        return Promise.resolve(this.fakeStore.listSnippetDescriptors(page, pageSize, snippetName));
+    registerUser(_email: string): Promise<void> {
+        return Promise.resolve();
+    }
+
+    listSnippetDescriptors(page: number, pageSize: number, filters?: SnippetFilters): Promise<PaginatedSnippets> {
+        return Promise.resolve(this.fakeStore.listSnippetDescriptors(page, pageSize, filters));
     }
 
     createSnippet(createSnippet: CreateSnippet): Promise<void> {
@@ -64,25 +69,57 @@ export class FakeSnippetOperations implements SnippetOperations {
         ]);
     }
 
+    searchUsers(_nameQuery: string): Promise<{id: string, name: string}[]> {
+        return Promise.resolve([
+            { id: "user1", name: "alice@example.com" }
+        ]);
+    }
+
+    updateSnippetMetadata(_snippetId: string, _metadata: { description?: string; version?: string }): Promise<void> {
+        return Promise.resolve();
+    }
+
     getFileTypes(): Promise<FileType[]> {
         return Promise.resolve([{ language: "printscript", extension: "ps", version: "1.1" }]);
     }
 
-    getTestCases(_snippetId: string): Promise<string[]> {
-        return Promise.resolve([]);
+    getTestCases(snippetId: string): Promise<TestCase[]> {
+        return Promise.resolve(this.fakeStore.getTests(snippetId));
     }
 
-    removeTestCase(id: string): Promise<string> {
-        return Promise.resolve(id);
+    createTestCase(snippetId: string, testCase: CreateTestCase): Promise<{ testId: string }> {
+        const testId = this.fakeStore.createTest(snippetId, testCase);
+        return Promise.resolve({ testId });
+    }
+
+    removeTestCase(snippetIdOrTestId: string, testId?: string): Promise<string> {
+        if (testId) {
+            this.fakeStore.deleteTest(snippetIdOrTestId, testId);
+            return Promise.resolve(testId);
+        }
+        return Promise.resolve(snippetIdOrTestId);
+    }
+
+    deleteTestCase(snippetId: string, testId: string): Promise<void> {
+        this.fakeStore.deleteTest(snippetId, testId);
+        return Promise.resolve();
+    }
+
+    runTestCase(snippetId: string, testId: string): Promise<TestCaseResult> {
+        return Promise.resolve(this.fakeStore.runTest(snippetId, testId));
     }
 
     formatSnippet(snippet: string): Promise<string> {
         return Promise.resolve(formatPrintScriptCode(snippet, []));
     }
 
+    lintSnippet(_snippet: string): Promise<string> {
+        return Promise.resolve("No issues found.");
+    }
+
     getSnippetData(id: string): Promise<SnippetData> {
         const snippet = this.fakeStore.getSnippetData(id);
-        return Promise.resolve({ snippetId: snippet.id, name: snippet.name, language: snippet.language });
+        return Promise.resolve({ snippetId: snippet.id, name: snippet.name, language: snippet.language, description: snippet.description, version: snippet.version });
     }
 
     updateSnippetById(id: string, updateSnippet: UpdateSnippet): Promise<Snippet> {
