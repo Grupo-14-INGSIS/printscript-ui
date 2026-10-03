@@ -54,6 +54,7 @@ describe('Home', () => {
 
     it('Can creat snippet find snippets by name', () => {
         const snippetData: CreateSnippet = {
+            id: "test-id",
             name: "Test name",
             content: 'println("Hello");',
             language: "printscript",
