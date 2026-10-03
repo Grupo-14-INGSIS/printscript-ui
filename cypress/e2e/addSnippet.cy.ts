@@ -1,49 +1,72 @@
-import {BACKEND_URL} from "../../src/utils/constants";
+import {AUTH0_PASSWORD, AUTH0_USERNAME} from "../../src/utils/constants";
 
 describe('Add snippet tests', () => {
     beforeEach(() => {
-        // cy.loginToAuth0(
-        //     AUTH0_USERNAME,
-        //     AUTH0_PASSWORD
-        // )
-    })
+        const username = AUTH0_USERNAME || Cypress.env('VITE_AUTH0_USERNAME') || "desireless1789@gmail.com";
+        const password = AUTH0_PASSWORD || Cypress.env('VITE_AUTH0_PASSWORD') || "desireless1789@gmail.com";
+        cy.loginToAuth0(username, password);
+
+        // Intercept user registration
+        cy.intercept('PUT', '**/users*', {
+            statusCode: 200,
+            body: {},
+        }).as("registerUser");
+
+        // Intercept initial snippets list
+        cy.intercept('GET', /\/snippets(\?.*)?$/, {
+            statusCode: 200,
+            body: {},
+        }).as("getSnippets");
+    });
+
     it('Can add snippets manually', () => {
-        cy.visit("/")
-        cy.intercept('POST', BACKEND_URL+"/snippets", (req) => {
-            req.reply((res) => {
-                expect(res.body).to.include.keys("id","name","content","language")
-                expect(res.statusCode).to.eq(200);
+        cy.intercept('PUT', '**/snippet/**', (req) => {
+            expect(req.body).to.have.property('name', 'Some snippet name');
+            expect(req.body).to.have.property('language', 'printscript');
+            req.reply({
+                statusCode: 200,
+                body: {},
             });
-        }).as('postRequest');
+        }).as('createSnippet');
 
-        /* ==== Generated with Cypress Studio ==== */
-        cy.get('.css-9jay18 > .MuiButton-root').click();
-        cy.get('.MuiList-root > [tabindex="0"]').click();
+        cy.visit("/");
+
+        // Open Add Snippet modal
+        cy.contains('button', 'Add Snippet').click();
+        cy.contains('Create snippet').click();
+
+        // Fill snippet form with valid PrintScript syntax
         cy.get('#name').type('Some snippet name');
-        cy.get('#demo-simple-select').click()
-        cy.get('[data-testid="menu-option-printscript"]').click()
-
         cy.get('[data-testid="add-snippet-code-editor"]').click();
-        cy.get('[data-testid="add-snippet-code-editor"]').type(`const snippet: String = "some snippet" \n print(snippet)`);
-        cy.get('[data-testid="SaveIcon"]').click();
+        cy.get('[data-testid="add-snippet-code-editor"]').type('println("some snippet");');
 
-        cy.wait('@postRequest').its('response.statusCode').should('eq', 200);
-    })
+        // Save
+        cy.contains('button', 'Save Snippet').click();
+
+        // Assert API request and user feedback snackbar
+        cy.wait('@createSnippet').its('response.statusCode').should('eq', 200);
+        cy.contains('Snippet created successfully').should('be.visible');
+    });
 
     it('Can add snippets via file', () => {
-        cy.visit("/")
-        cy.intercept('POST', BACKEND_URL+"/snippets", (req) => {
-            req.reply((res) => {
-                expect(res.body).to.include.keys("id","name","content","language")
-                expect(res.statusCode).to.eq(200);
+        cy.intercept('PUT', '**/snippet/**', (req) => {
+            expect(req.body).to.have.property('language', 'printscript');
+            req.reply({
+                statusCode: 200,
+                body: {},
             });
-        }).as('postRequest');
+        }).as('createSnippet');
 
-        /* ==== Generated with Cypress Studio ==== */
-        cy.get('[data-testid="upload-file-input"').selectFile("cypress/fixtures/example_ps.ps", {force: true})
+        cy.visit("/");
 
-        cy.get('[data-testid="SaveIcon"]').click();
+        // Select file from fixtures
+        cy.get('[data-testid="upload-file-input"]').selectFile("cypress/fixtures/example_ps.ps", { force: true });
 
-        cy.wait('@postRequest').its('response.statusCode').should('eq', 200);
-    })
-})
+        // Save uploaded snippet
+        cy.contains('button', 'Save Snippet').click();
+
+        // Assert API request and user feedback snackbar
+        cy.wait('@createSnippet').its('response.statusCode').should('eq', 200);
+        cy.contains('Snippet created successfully').should('be.visible');
+    });
+});
