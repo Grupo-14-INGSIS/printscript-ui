@@ -23,24 +23,28 @@ describe('Snippet Detail tests', () => {
         });
 
         // Intercept individual snippet detail & content for any snippet ID
-        cy.intercept('GET', /\/snippets\/[0-9]+$/, {
-            statusCode: 200,
-            body: {
-                snippetId: "1",
-                id: "1",
-                name: "Hello World",
-                language: "printscript",
-                compliance: "compliant",
-                author: "alice",
-            },
+        cy.intercept('GET', /\/(snippet\/)?snippets\/[0-9]+$/, (req) => {
+            if (req.url.includes('19082') || req.url.includes('runner') || req.url.includes('/snippet/snippets/')) {
+                req.reply({
+                    statusCode: 200,
+                    body: {
+                        content: 'println("Hello, World!");',
+                    },
+                });
+            } else {
+                req.reply({
+                    statusCode: 200,
+                    body: {
+                        snippetId: "1",
+                        id: "1",
+                        name: "Hello World",
+                        language: "printscript",
+                        compliance: "compliant",
+                        author: "alice",
+                    },
+                });
+            }
         }).as("getSnippetData");
-
-        cy.intercept('GET', /\/snippet\/snippets\/[0-9]+/, {
-            statusCode: 200,
-            body: {
-                content: 'println("Hello, World!");',
-            },
-        }).as("getSnippetContent");
 
         cy.intercept('GET', /\/tests/, {
             statusCode: 200,
@@ -68,7 +72,7 @@ describe('Snippet Detail tests', () => {
             body: [],
         }).as('getSharedUsers');
 
-        cy.intercept('PUT', '**/permission*', {
+        cy.intercept({ method: /(PUT|POST)/, url: '**/permission*' }, {
             statusCode: 200,
             body: { success: true },
         }).as('shareSnippet');
@@ -135,20 +139,27 @@ describe('Snippet Detail tests', () => {
 
     it('Can save snippets', function() {
         let currentSnippetContent = 'println("Hello, World!");';
-        cy.intercept('GET', /\/snippet\/snippets\/[0-9]+/, (req) => {
-            req.reply({
-                statusCode: 200,
-                body: { content: currentSnippetContent },
-            });
+        cy.intercept('GET', /\/(snippet\/)?snippets\/[0-9]+/, (req) => {
+            if (req.url.includes('19082') || req.url.includes('/runner') || req.url.includes('/snippet/snippets/')) {
+                req.reply({
+                    statusCode: 200,
+                    body: { content: currentSnippetContent },
+                });
+            }
         }).as('getRefetchedSnippetContent');
 
         // Assert initial precondition: save button is disabled when content has not changed
         cy.get('[data-testid="SaveIcon"]').parents('button').should('be.disabled');
 
-        cy.intercept('PATCH', '**/snippet/snippets/*', (req) => {
+        cy.intercept('PATCH', '**/snippets/*', (req) => {
             currentSnippetContent = 'println("Hello, World!");\n// new line added for save test';
             req.reply({ statusCode: 200, body: {} });
         }).as('patchSnippet');
+
+        cy.intercept('PATCH', '**/snippet/snippets/*', (req) => {
+            currentSnippetContent = 'println("Hello, World!");\n// new line added for save test';
+            req.reply({ statusCode: 200, body: {} });
+        }).as('patchSnippetLegacy');
 
         cy.intercept('PUT', '**/snippets/*', (req) => {
             currentSnippetContent = 'println("Hello, World!");\n// new line added for save test';

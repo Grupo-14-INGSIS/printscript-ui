@@ -213,14 +213,14 @@ export class ApiSnippetOperations implements SnippetOperations {
     }
 
     shareSnippet(snippetId: string, userId: string): Promise<Snippet> {
-        return this.request<Snippet>(`/api/v1/snippets/${snippetId}/permission`, {
-            method: 'PUT',
+        return this.request<Snippet>(`/api/v1/snippets/${snippetId}/permissions`, {
+            method: 'POST',
             body: JSON.stringify({ userId }),
         });
     }
 
     getSharedUsers(snippetId: string): Promise<SharedUser[]> {
-        return this.request<SharedUser[]>(`/api/v1/snippets/${snippetId}/permission`);
+        return this.request<SharedUser[]>(`/api/v1/snippets/${snippetId}/permissions`);
     }
 
     // Métodos no implementados (placeholders)
@@ -322,8 +322,8 @@ export class ApiSnippetOperations implements SnippetOperations {
     }
 
     async runTestCase(snippetId: string, testId: string): Promise<TestCaseResult> {
-        const res = await this.request<unknown>(`/api/v1/snippets/${snippetId}/tests/${testId}`, {
-            method: 'PUT',
+        const res = await this.request<unknown>(`/api/v1/snippets/${snippetId}/tests/${testId}/runs`, {
+            method: 'POST',
         });
 
         if (typeof res === 'string') {
@@ -395,28 +395,27 @@ export class ApiSnippetOperations implements SnippetOperations {
     
     // --- Test & Execution ---
     async startExecution(snippetId: string, environment: Record<string, string>, version: string): Promise<StartExecutionResponse> {
-        return this.request<StartExecutionResponse>(`/api/v1/snippets/${snippetId}/execution`, {
+        return this.request<StartExecutionResponse>(`/api/v1/snippets/${snippetId}/executions`, {
             method: 'POST',
             body: JSON.stringify({ environment, version }),
         });
     }
 
     sendInput(snippetId: string, input: string): Promise<void> {
-        return this.request<void>(`/api/v1/snippets/${snippetId}/execution/input`, {
+        return this.request<void>(`/api/v1/snippets/${snippetId}/executions/input`, {
             method: 'POST',
             body: JSON.stringify({ input }),
         });
     }
 
     cancelExecution(snippetId: string, userId: string): Promise<void> {
-        return this.request<void>(`/api/v1/snippets/${snippetId}/execution`, {
+        return this.request<void>(`/api/v1/snippets/${snippetId}/executions`, {
             method: 'DELETE',
             body: JSON.stringify({ userId } as CancelExecutionRequest),
         });
     }
 
     getExecutionStatus(snippetId: string, _executionId: string): Promise<ExecutionStatus> {
-        // The App's endpoint is /api/v1/snippets/{snippetId}/run/status
-        return this.request<ExecutionStatus>(`/api/v1/snippets/${snippetId}/run/status`);
+        return this.request<ExecutionStatus>(`/api/v1/snippets/${snippetId}/executions/status`);
     }
 }

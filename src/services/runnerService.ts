@@ -51,7 +51,7 @@ export class RunnerService {
 
     async createSnippet(snippet: CreateSnippet, userId?: string): Promise<void> {
         const { id, content, name, language } = snippet;
-        await this.request<void>(`/api/v1/snippet/snippets/${id}`, {
+        await this.request<void>(`/api/v1/snippets/${id}`, {
             method: 'PUT',
             body: JSON.stringify({
                 userId: userId || 'default_user',
@@ -63,7 +63,7 @@ export class RunnerService {
     }
 
     async getSnippetContent(snippetId: string): Promise<string> {
-        const res = await this.request<unknown>(`/api/v1/snippet/snippets/${snippetId}`);
+        const res = await this.request<unknown>(`/api/v1/snippets/${snippetId}`);
         if (typeof res === 'object' && res !== null && 'content' in res) {
             return (res as { content: string }).content;
         }
@@ -74,21 +74,21 @@ export class RunnerService {
     }
 
     startSnippetExecution(snippetId: string, data: ExecutionRequest): Promise<ExecutionResponse> {
-        return this.request<ExecutionResponse>(`/api/v1/snippets/${snippetId}/execution`, {
+        return this.request<ExecutionResponse>(`/api/v1/snippets/${snippetId}/executions`, {
             method: 'POST',
             body: JSON.stringify(data),
         });
     }
 
     sendInput(snippetId: string, data: InputRequest): Promise<void> {
-        return this.request<void>(`/api/v1/snippets/${snippetId}/execution/input`, {
+        return this.request<void>(`/api/v1/snippets/${snippetId}/executions/input`, {
             method: 'POST',
             body: JSON.stringify(data),
         });
     }
 
     cancelExecution(snippetId: string, data: CancelExecutionRequest): Promise<void> {
-        return this.request<void>(`/api/v1/snippets/${snippetId}/execution`, {
+        return this.request<void>(`/api/v1/snippets/${snippetId}/executions`, {
             method: 'DELETE',
             body: JSON.stringify(data),
         });
@@ -101,7 +101,7 @@ export class RunnerService {
     }
 
     async updateSnippetContent(id: string, content: string): Promise<void> {
-        await this.request<void>(`/api/v1/snippet/snippets/${id}`, {
+        await this.request<void>(`/api/v1/snippets/${id}`, {
             method: 'PATCH',
             body: JSON.stringify({
                 snippet: content,

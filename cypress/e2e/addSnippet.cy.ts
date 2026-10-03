@@ -20,7 +20,7 @@ describe('Add snippet tests', () => {
     });
 
     it('Can add snippets manually', () => {
-        cy.intercept('PUT', '**/snippet/**', (req) => {
+        cy.intercept('PUT', '**/snippet*/**', (req) => {
             expect(req.body).to.have.property('name', 'Some snippet name');
             expect(req.body).to.have.property('language', 'printscript');
             req.reply({
@@ -49,7 +49,7 @@ describe('Add snippet tests', () => {
     });
 
     it('Can add snippets via file', () => {
-        cy.intercept('PUT', '**/snippet/**', (req) => {
+        cy.intercept('PUT', '**/snippet*/**', (req) => {
             expect(req.body).to.have.property('language', 'printscript');
             req.reply({
                 statusCode: 200,
