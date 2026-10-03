@@ -1,21 +1,20 @@
-import {AUTH0_PASSWORD, AUTH0_USERNAME, BACKEND_URL} from "../../src/utils/constants";
+import {BACKEND_URL} from "../../src/utils/constants";
 
 describe('Add snippet tests', () => {
     beforeEach(() => {
-        cy.loginToAuth0(
-            Cypress.env('VITE_AUTH0_USERNAME'),
-            Cypress.env('VITE_AUTH0_PASSWORD')
-        )
+        // cy.loginToAuth0(
+        //     AUTH0_USERNAME,
+        //     AUTH0_PASSWORD
+        // )
     })
-
     it('Can add snippets manually', () => {
         cy.visit("/")
-        cy.intercept('PUT', BACKEND_URL + "/api/v1/snippets/*", (req) => {
-            req.reply({
-                statusCode: 200,
-                body: {},
+        cy.intercept('POST', BACKEND_URL+"/snippets", (req) => {
+            req.reply((res) => {
+                expect(res.body).to.include.keys("id","name","content","language")
+                expect(res.statusCode).to.eq(200);
             });
-        }).as('putRequest');
+        }).as('postRequest');
 
         /* ==== Generated with Cypress Studio ==== */
         cy.get('.css-9jay18 > .MuiButton-root').click();
@@ -28,17 +27,17 @@ describe('Add snippet tests', () => {
         cy.get('[data-testid="add-snippet-code-editor"]').type(`const snippet: String = "some snippet" \n print(snippet)`);
         cy.get('[data-testid="SaveIcon"]').click();
 
-        cy.wait('@putRequest').its('response.statusCode').should('eq', 200);
+        cy.wait('@postRequest').its('response.statusCode').should('eq', 200);
     })
 
     it('Can add snippets via file', () => {
         cy.visit("/")
-        cy.intercept('PUT', BACKEND_URL + "/api/v1/snippets/*", (req) => {
-            req.reply({
-                statusCode: 200,
-                body: {},
+        cy.intercept('POST', BACKEND_URL+"/snippets", (req) => {
+            req.reply((res) => {
+                expect(res.body).to.include.keys("id","name","content","language")
+                expect(res.statusCode).to.eq(200);
             });
-        }).as('putRequest');
+        }).as('postRequest');
 
         /* ==== Generated with Cypress Studio ==== */
         cy.get('[data-testid="upload-file-input"').selectFile("cypress/fixtures/example_ps.ps", {force: true})
