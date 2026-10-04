@@ -23,6 +23,7 @@ export class ApiSnippetOperations implements SnippetOperations {
 
         const headers: HeadersInit = {
             'Content-Type': 'application/json',
+            'X-Request-Id': (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()),
             ...(token && { 'Authorization': `Bearer ${token}` }),
         };
 
