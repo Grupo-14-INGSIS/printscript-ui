@@ -19,8 +19,12 @@ describe('Add snippet tests', () => {
         }).as("getSnippets");
     });
 
+    // Solo el PUT de creacion de snippet (Runner): el glob '**/snippet*/**' matcheaba tambien
+    // el host snippet26dev.duckdns.org y capturaba el PUT /api/v1/users del login.
+    const createSnippetUrl = /\/api\/v1\/snippets\/[^/?]+$/;
+
     it('Can add snippets manually', () => {
-        cy.intercept('PUT', '**/snippet*/**', (req) => {
+        cy.intercept('PUT', createSnippetUrl, (req) => {
             expect(req.body).to.have.property('name', 'Some snippet name');
             expect(req.body).to.have.property('language', 'printscript');
             req.reply({
@@ -49,7 +53,7 @@ describe('Add snippet tests', () => {
     });
 
     it('Can add snippets via file', () => {
-        cy.intercept('PUT', '**/snippet*/**', (req) => {
+        cy.intercept('PUT', createSnippetUrl, (req) => {
             expect(req.body).to.have.property('language', 'printscript');
             req.reply({
                 statusCode: 200,

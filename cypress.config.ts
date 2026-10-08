@@ -8,20 +8,20 @@ export default defineConfig({
         setupNodeEvents(on, config) {
             config.env = {
                 ...config.env,
-                VITE_FRONTEND_URL: process.env.VITE_FRONTEND_URL || "https://group14-dev.duckdns.org",
-                VITE_BACKEND_URL: process.env.VITE_BACKEND_URL,
-                VITE_RUNNER_URL: process.env.VITE_RUNNER_URL,
+                VITE_FRONTEND_URL: process.env.VITE_FRONTEND_URL || "https://snippet26dev.duckdns.org",
+                VITE_BACKEND_URL: process.env.VITE_BACKEND_URL || "https://snippet26dev.duckdns.org",
+                VITE_RUNNER_URL: process.env.VITE_RUNNER_URL || "https://snippet26dev.duckdns.org/runner",
                 VITE_AUTH0_USERNAME: process.env.VITE_AUTH0_USERNAME,
                 VITE_AUTH0_PASSWORD: process.env.VITE_AUTH0_PASSWORD,
                 VITE_AUTH0_DOMAIN: process.env.VITE_AUTH0_DOMAIN,
                 VITE_AUTH0_CLIENT_ID: process.env.VITE_AUTH0_CLIENT_ID,
                 VITE_AUTH0_AUDIENCE: process.env.VITE_AUTH0_AUDIENCE,
                 VITE_AUTH0_REALM: process.env.VITE_AUTH0_REALM,
-                VITE_API_URL: process.env.VITE_API_URL,
+                VITE_API_URL: process.env.VITE_API_URL || "https://snippet26dev.duckdns.org",
             };
             return config;
         },
         experimentalStudio: true,
-        baseUrl: process.env.VITE_FRONTEND_URL || "https://group14-dev.duckdns.org",
+        baseUrl: process.env.VITE_FRONTEND_URL || "https://snippet26dev.duckdns.org",
     },
 });

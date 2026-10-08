@@ -84,7 +84,7 @@ describe('Home', () => {
             }
         }).as('getSnippets');
 
-        cy.intercept('PUT', '**/snippet*/**', (req) => {
+        cy.intercept('PUT', /\/api\/v1\/snippets\/[^/?]+$/, (req) => {
             req.reply({
                 statusCode: 200,
                 body: { ...snippetData, id: "test-id" },
