@@ -118,11 +118,18 @@ export class ApiSnippetOperations implements SnippetOperations {
     
     // --- Snippets ---
 
-    registerUser(email: string): Promise<void> {
-        return this.request<void>('/api/v1/users', {
-            method: 'PUT',
-            body: JSON.stringify({ email })
-        });
+    async registerUser(email: string): Promise<void> {
+        try {
+            await this.request<void>('/api/v1/users', {
+                method: 'PUT',
+                body: JSON.stringify({ email })
+            });
+        } catch (err: any) {
+            if (err?.message?.includes('409') || err?.message?.includes('already exists')) {
+                return;
+            }
+            throw err;
+        }
     }
 
     async listSnippetDescriptors(page: number, pageSize: number, filters?: SnippetFilters): Promise<PaginatedSnippets> {
