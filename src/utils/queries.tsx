@@ -96,13 +96,18 @@ export const useGetFileTypes = () => {
 }
 
 export const useCreateSnippet = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<void, Error, CreateSnippet> => {
-    const { runnerService } = useServices();
+    const { apiService, runnerService } = useServices();
     const { user } = useAuth0();
 
     return useMutation<void, Error, CreateSnippet>(
         async (snippet: CreateSnippet) => {
             if (!user?.sub) throw new Error("User not authenticated");
-            await runnerService.createSnippet(snippet, user.sub);
+            // 1. Crear snippet en el servicio principal de App (metadatos en Postgres appdb)
+            await apiService.createSnippet(snippet, user.sub);
+            // 2. Si tiene contenido de código, subirlo a través del runner al asset-service
+            if (snippet.content) {
+                await runnerService.updateSnippetContent(snippet.id, snippet.content);
+            }
         },
         {onSuccess}
     );
