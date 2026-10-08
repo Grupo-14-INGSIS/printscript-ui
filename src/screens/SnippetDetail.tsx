@@ -255,9 +255,10 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                 inputs: [],
             });
             setExecutionResult(res);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Execution error:", err);
-            createSnackbar('error', err?.message ?? 'Execution failed');
+            const message = err instanceof Error ? err.message : 'Execution failed';
+            createSnackbar('error', message);
         }
     }
   };

@@ -64,13 +64,9 @@ export class RunnerService {
     }
 
     async getSnippetContent(snippetId: string): Promise<string> {
-<<<<<<< HEAD
         const res = await this.request<unknown>(`/api/v1/snippets/${snippetId}`);
-=======
-        const res = await this.request<any>(`/api/v1/snippet/snippets/${snippetId}`);
->>>>>>> c676902a7b21abbc9c31c86623ee89726df9e40c
         if (typeof res === 'object' && res !== null && 'content' in res) {
-            return res.content;
+            return (res as { content: string }).content;
         }
         if (typeof res === 'string') {
             return res;

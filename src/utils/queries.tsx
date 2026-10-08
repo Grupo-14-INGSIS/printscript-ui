@@ -1,13 +1,8 @@
 import {useMutation, UseMutationResult, useQuery} from 'react-query';
 import {Rule} from "../types/Rule.ts";
 import {FileType} from "../types/FileType.ts";
-<<<<<<< HEAD
 import {CreateSnippet, PaginatedSnippets, Snippet, SnippetFilters} from "./snippet.ts";
 import { useServices } from '../contexts/serviceContext.tsx';
-=======
-import {CreateSnippet, PaginatedSnippets, Snippet} from "./snippet.ts";
-import { useServices, fakeStore } from '../contexts/serviceContext.tsx';
->>>>>>> c676902a7b21abbc9c31c86623ee89726df9e40c
 import { useAuth0 } from '@auth0/auth0-react';
 import { StartExecutionResponse, ExecutionStatus, SharedUser } from '../types/runner.ts';
 import { TestCase, CreateTestCase, TestCaseResult } from '../types/TestCase.ts';
@@ -231,7 +226,6 @@ export const useGetSnippetById = (id: string | null) => {
         async () => {
             if (!id) throw new Error("No snippet ID provided");
 
-<<<<<<< HEAD
             // App (BFF) devuelve metadatos + contenido. Si por algún motivo no trae el
             // contenido, lo pedimos directo al Runner; si tampoco existe, se abre vacío
             // para que el usuario pueda cargarlo y guardarlo.
@@ -245,17 +239,6 @@ export const useGetSnippetById = (id: string | null) => {
                     content = '';
                 }
             }
-=======
-            if (import.meta.env.VITE_USE_MOCK === 'true') {
-                return fakeStore.getSnippetData(id);
-            }
-
-            // Fire both requests in parallel
-            const metadataPromise = apiService.getSnippetData(id);
-            const contentPromise = runnerService.getSnippetContent(id);
-
-            const [metadata, content] = await Promise.all([metadataPromise, contentPromise]);
->>>>>>> c676902a7b21abbc9c31c86623ee89726df9e40c
 
             // Combine the results
             return {

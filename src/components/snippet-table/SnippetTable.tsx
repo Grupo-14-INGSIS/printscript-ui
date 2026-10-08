@@ -125,7 +125,6 @@ export const SnippetTable = (props: SnippetTableProps) => {
 
   return (
       <>
-<<<<<<< HEAD
         <Box display="flex" flexDirection="column" gap={2} mb={2}>
           <Box display="flex" flexDirection="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
             <Box sx={{background: 'white', minWidth: '240px', flex: {xs: '1 1 100%', md: '0 1 280px'}, display: 'flex', alignItems: 'center', px: 1, borderRadius: 1}}>
@@ -214,19 +213,6 @@ export const SnippetTable = (props: SnippetTableProps) => {
                 Add Snippet
               </Button>
             </Box>
-=======
-        <Box display="flex" flexDirection="row" justifyContent="space-between">
-          <Box sx={{background: 'white', width: '30%', display: 'flex'}}>
-            <InputBase
-                sx={{ml: 1, flex: 1}}
-                placeholder="Search Snippet..."
-                inputProps={{'aria-label': 'search'}}
-                onChange={e => handleSearchSnippet(e.target.value)}
-            />
-            <IconButton type="button" sx={{p: '10px'}} aria-label="search">
-              <Search/>
-            </IconButton>
->>>>>>> c676902a7b21abbc9c31c86623ee89726df9e40c
           </Box>
         </Box>
 
