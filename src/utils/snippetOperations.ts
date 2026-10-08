@@ -3,6 +3,7 @@ import {FileType} from "../types/FileType.ts";
 import {CreateSnippet, PaginatedSnippets, Snippet, SnippetData, SnippetFilters} from "./snippet.ts";
 import { StartExecutionResponse, ExecutionStatus, SharedUser } from "../types/runner.ts";
 import { TestCase, CreateTestCase, TestCaseResult } from "../types/TestCase.ts";
+import { User } from "./users.ts";
 
 export interface SnippetOperations {
     getFormatRules(): Promise<Rule[]>
@@ -42,10 +43,12 @@ export interface SnippetOperations {
 
     getSharedUsers(snippetId: string): Promise<SharedUser[]>
 
+    getUsers(name?: string): Promise<User[]>
+
     listSnippetDescriptors(page: number,pageSize: number,filters?: SnippetFilters): Promise<PaginatedSnippets>
 
     // --- Execution Methods ---
-    startExecution(snippetId: string, environment: Record<string, string>, version: string): Promise<StartExecutionResponse>
+    startExecution(snippetId: string, environment: Record<string, string>, version: string, inputs?: string[]): Promise<StartExecutionResponse>
     sendInput(snippetId: string, input: string): Promise<void>
     cancelExecution(snippetId: string, userId: string): Promise<void>
     getExecutionStatus(snippetId: string, executionId: string): Promise<ExecutionStatus>

@@ -8,6 +8,7 @@ import { StartExecutionResponse, ExecutionStatus, CancelExecutionRequest, Shared
 import { TestCase, CreateTestCase, TestCaseResult } from '../types/TestCase.ts';
 import { formatPrintScriptCode } from "../utils/formatter.ts";
 import { lintPrintScriptCode } from "../utils/linter.ts";
+import { User } from "../utils/users.ts";
 
 export class ApiSnippetOperations implements SnippetOperations {
 
@@ -232,6 +233,12 @@ export class ApiSnippetOperations implements SnippetOperations {
         return this.request<SharedUser[]>(`/api/v1/snippets/${snippetId}/permissions`);
     }
 
+    async getUsers(name?: string): Promise<User[]> {
+        const query = name && name.trim() !== '' ? `?name=${encodeURIComponent(name.trim())}` : '';
+        const users = await this.request<Array<{ id: string; name: string }>>(`/api/v1/users${query}`);
+        return Array.isArray(users) ? users : [];
+    }
+
     // Métodos no implementados (placeholders)
     getFileTypes(): Promise<FileType[]> {
         return Promise.resolve([{ language: "printscript", extension: "ps", version: "1.1" }]);
@@ -396,6 +403,7 @@ export class ApiSnippetOperations implements SnippetOperations {
         }
     }
     getSnippetData(id: string): Promise<SnippetData> {
+        // BFF de App: devuelve metadatos + content (lo pide al Runner)
         return this.request<SnippetData>(`/api/v1/snippets/${id}`);
     }
     updateSnippetById(_id: string, _updateSnippet: UpdateSnippet): Promise<Snippet> {
@@ -403,10 +411,14 @@ export class ApiSnippetOperations implements SnippetOperations {
     }
     
     // --- Test & Execution ---
-    async startExecution(snippetId: string, environment: Record<string, string>, version: string): Promise<StartExecutionResponse> {
+    /**
+     * Ejecuta el snippet con los inputs ya ingresados. Si el snippet pide otro `readInput`
+     * la respuesta es WAITING: hay que volver a llamar con la lista de inputs ampliada.
+     */
+    async startExecution(snippetId: string, environment: Record<string, string>, version: string, inputs: string[] = []): Promise<StartExecutionResponse> {
         return this.request<StartExecutionResponse>(`/api/v1/snippets/${snippetId}/executions`, {
             method: 'POST',
-            body: JSON.stringify({ environment, version }),
+            body: JSON.stringify({ environment, version, inputs }),
         });
     }
 

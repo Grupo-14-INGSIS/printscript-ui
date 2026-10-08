@@ -29,6 +29,9 @@ export type SnippetData = {
     compliance?: ComplianceEnum;
     status?: string;
     author?: string;
+    description?: string;
+    version?: string;
+    content?: string | null;
 };
 
 export type Snippet = CreateSnippet & {

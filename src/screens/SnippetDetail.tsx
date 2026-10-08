@@ -7,7 +7,7 @@ import "prismjs/themes/prism-okaidia.css";
 import {Alert, Box, CircularProgress, IconButton, Tooltip, Typography, Select, MenuItem, FormControl, InputLabel, Tab, Tabs, Switch, FormControlLabel, Chip} from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import {
-  useUpdateSnippetContent, useStartExecution, useCancelExecution, useGetExecutionStatus, useGetTestCases, useLintSnippet
+  useUpdateSnippetContent, useStartExecution, useCancelExecution, useGetTestCases, useLintSnippet
 } from "../utils/queries.tsx";
 import {useFormatSnippet, useGetSnippetById} from "../utils/queries.tsx";
 import {Bòx} from "../components/snippet-table/SnippetBox.tsx";
@@ -19,7 +19,7 @@ import {Snippet} from "../utils/snippet.ts";
 import {SnippetExecution} from "./SnippetExecution.tsx";
 import ReadMoreIcon from '@mui/icons-material/ReadMore';
 import {queryClient} from "../App.tsx";
-import { StartExecutionResponse } from "../types/runner.ts";
+import { ExecutionEventType, StartExecutionResponse } from "../types/runner.ts";
 import { useSnackbarContext } from "../contexts/snackbarContext.tsx";
 import { DeleteConfirmationModal } from "../components/snippet-detail/DeleteConfirmationModal.tsx";
 import { useAuth0 } from '@auth0/auth0-react';
@@ -96,28 +96,50 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   const {mutateAsync: formatSnippetAsync, isLoading: isFormatLoading} = useFormatSnippet();
   const {mutateAsync: lintSnippetAsync, isLoading: isLintLoading} = useLintSnippet();
   const {mutateAsync: updateSnippetContent, isLoading: isUpdateSnippetLoading} = useUpdateSnippetContent({
-    onSuccess: () => {
+    onSuccess: (message: string) => {
       queryClient.invalidateQueries(['snippet', id]);
-      createSnackbar('success', 'Snippet updated successfully');
+      queryClient.invalidateQueries('listSnippets');
+      // El Runner corre los tests del snippet al actualizarlo (US #16) y devuelve el resultado
+      if (message && message.includes('test results')) {
+        createSnackbar('warning', message);
+      } else {
+        createSnackbar('success', 'Snippet updated successfully');
+      }
       setUpdateError(null);
     }
   });
   const {mutateAsync: startExecution, isLoading: isStartingExecution} = useStartExecution({
     onSuccess: (data) => {
         setExecutionResult(data);
-        setExecutionId(id); 
-        setRunSnippet(false);
+        setExecutionId(id);
+        setRunSnippet(data.status === ExecutionEventType.WAITING);
     }
   });
   const {mutateAsync: cancelExecution, isLoading: isCancellingExecution} = useCancelExecution({
     onSuccess: () => {
         setExecutionId(null);
         setExecutionResult(null);
+        setExecutionInputs([]);
         setRunSnippet(false);
     }
   });
 
-  const {data: executionStatus} = useGetExecutionStatus(id, executionId || '');
+  // Ejecución interactiva (stateless): guardamos los inputs ya ingresados y, cuando el snippet
+  // pide otro (WAITING), re-ejecutamos con la lista ampliada. Así funciona con N réplicas del Runner.
+  const [executionInputs, setExecutionInputs] = useState<string[]>([]);
+  const [executionVersion, setExecutionVersion] = useState<string>("1.1");
+
+  const handleSendInput = async (input: string) => {
+    const inputs = [...executionInputs, input];
+    setExecutionInputs(inputs);
+    const res = await startExecution({
+      snippetId: id,
+      environment: {},
+      version: executionVersion,
+      inputs,
+    });
+    setExecutionResult(res);
+  };
 
   useEffect(() => {
     if (snippet) {
@@ -189,7 +211,8 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
           console.warn("Auto-format failed, saving current content", fErr);
         }
       }
-      await updateSnippetContent({id: id, content: contentToSave});
+      const detectedVersion = (contentToSave.includes("const ") || contentToSave.includes("if ") || contentToSave.includes("readInput") || contentToSave.includes("readEnv")) ? "1.1" : version;
+      await updateSnippetContent({id: id, content: contentToSave, version: detectedVersion});
 
       if (autoLint) {
         try {
@@ -220,11 +243,16 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
             if (snippet && snippet.content !== code) {
                 await handleSaveSnippet();
             }
+            // Reset del estado de la ejecución anterior
+            setExecutionResult(null);
+            setExecutionInputs([]);
             const detectedVersion = (code.includes("const ") || code.includes("if ") || code.includes("readInput") || code.includes("readEnv")) ? "1.1" : version;
+            setExecutionVersion(detectedVersion);
             const res = await startExecution({
                 snippetId: id,
                 environment: {}, // Default empty environment
                 version: detectedVersion,
+                inputs: [],
             });
             setExecutionResult(res);
         } catch (err: unknown) {
@@ -394,7 +422,13 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
               {bottomTab === 0 && (
                 <Box>
                   <Alert severity="info" sx={{ mb: 1 }}>Output</Alert>
-                  <SnippetExecution snippetId={id} executionId={executionId} executionStatus={executionResult || executionStatus} />
+                  <SnippetExecution
+                    snippetId={id}
+                    executionId={executionId}
+                    executionStatus={executionResult ?? undefined}
+                    onSendInput={handleSendInput}
+                    isSendingInput={isStartingExecution}
+                  />
                 </Box>
               )}
 

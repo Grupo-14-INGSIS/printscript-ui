@@ -5,6 +5,7 @@ import { StartExecutionResponse, ExecutionStatus, SharedUser } from "../../types
 import { Rule } from "../../types/Rule.ts"; // Corrected path
 import { TestCase, CreateTestCase, TestCaseResult } from "../../types/TestCase.ts";
 import { FakeSnippetStore } from "./fakeSnippetStore.ts"; // Added import for FakeSnippetStore
+import { User } from "../users.ts";
 import { formatPrintScriptCode } from "../formatter.ts";
 
 export class FakeSnippetOperations implements SnippetOperations {
@@ -69,6 +70,15 @@ export class FakeSnippetOperations implements SnippetOperations {
         ]);
     }
 
+    getUsers(name?: string): Promise<User[]> {
+        const users: User[] = [
+            { id: "user1", name: "alice@example.com" },
+            { id: "user2", name: "bob@example.com" },
+        ];
+        const term = (name ?? "").toLowerCase();
+        return Promise.resolve(term ? users.filter(u => u.name.toLowerCase().includes(term)) : users);
+    }
+
     getFileTypes(): Promise<FileType[]> {
         return Promise.resolve([{ language: "printscript", extension: "ps", version: "1.1" }]);
     }
@@ -121,7 +131,7 @@ export class FakeSnippetOperations implements SnippetOperations {
     }
 
     // --- Test & Execution ---
-    startExecution(snippetId: string, environment: Record<string, string>, version: string): Promise<StartExecutionResponse> {
+    startExecution(snippetId: string, environment: Record<string, string>, version: string, _inputs?: string[]): Promise<StartExecutionResponse> {
         return Promise.resolve(this.fakeStore.startExecution(snippetId, environment, version));
     }
 

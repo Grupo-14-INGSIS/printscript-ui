@@ -19,11 +19,12 @@ export class FakeRunnerService {
         return s ? s.content : '';
     }
 
-    async updateSnippetContent(id: string, content: string): Promise<void> {
+    async updateSnippetContent(id: string, content: string, _version?: string): Promise<string> {
         const s = this.fakeStore.snippets.find(s => s.id === id);
         if (s) {
             s.content = content;
         }
+        return 'Snippet updated successfully.';
     }
 
     async registerUser(_userId: string): Promise<void> {

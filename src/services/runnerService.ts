@@ -109,12 +109,27 @@ export class RunnerService {
         }
     }
 
-    async updateSnippetContent(id: string, content: string): Promise<void> {
-        await this.request<void>(`/api/v1/snippets/${id}`, {
+    /**
+     * Actualiza el contenido del snippet. Se envía el JWT para que el Runner corra
+     * automáticamente los tests del snippet (User Story #16) y devuelva el resultado.
+     */
+    async updateSnippetContent(id: string, content: string, version?: string): Promise<string> {
+        let jwt: string | null = null;
+        try {
+            jwt = await this.getAccessToken({
+                authorizationParams: { audience: import.meta.env.VITE_AUTH0_AUDIENCE },
+            });
+        } catch {
+            jwt = null;
+        }
+        const result = await this.request<unknown>(`/api/v1/snippets/${id}`, {
             method: 'PATCH',
             body: JSON.stringify({
                 snippet: content,
+                jwt,
+                ...(version ? { version } : {}),
             }),
         });
+        return typeof result === 'string' ? result : '';
     }
 }

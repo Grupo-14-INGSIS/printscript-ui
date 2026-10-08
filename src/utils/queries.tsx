@@ -7,6 +7,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { StartExecutionResponse, ExecutionStatus, SharedUser } from '../types/runner.ts';
 import { TestCase, CreateTestCase, TestCaseResult } from '../types/TestCase.ts';
 import { queryClient } from '../App.tsx';
+import { User } from './users.ts';
 
 export const useGetFormatRules = () => {
   const { apiService } = useServices();
@@ -46,14 +47,17 @@ export const useModifyLintingRules = ({onSuccess}: {onSuccess: () => void}) => {
 
 // --- Hooks for execution endpoints ---
 
-export const useStartExecution = ({onSuccess}: {onSuccess: (data: StartExecutionResponse) => void}): UseMutationResult<StartExecutionResponse, Error, {
+type StartExecutionVars = {
     snippetId: string;
     environment: Record<string, string>;
     version: string;
-}> => {
+    inputs?: string[];
+};
+
+export const useStartExecution = ({onSuccess}: {onSuccess: (data: StartExecutionResponse) => void}): UseMutationResult<StartExecutionResponse, Error, StartExecutionVars> => {
     const { apiService } = useServices();
-    return useMutation<StartExecutionResponse, Error, { snippetId: string; environment: Record<string, string>; version: string }>(
-        ({snippetId, environment, version}: { snippetId: string; environment: Record<string, string>; version: string }) => apiService.startExecution(snippetId, environment, version),
+    return useMutation<StartExecutionResponse, Error, StartExecutionVars>(
+        ({snippetId, environment, version, inputs}: StartExecutionVars) => apiService.startExecution(snippetId, environment, version, inputs ?? []),
         {onSuccess}
     );
 };
@@ -82,11 +86,24 @@ export const useCancelExecution = ({onSuccess}: {onSuccess: () => void}): UseMut
     );
 };
 
-export const useGetExecutionStatus = (snippetId: string, executionId: string) => {
+/**
+ * Estado de la ejecución. Solo se consulta/pollea mientras la ejecución está viva
+ * (esperando input u output en curso); cuando termina se deja de pollear.
+ */
+export const useGetExecutionStatus = (snippetId: string, executionId: string, shouldPoll: boolean) => {
     const { apiService } = useServices();
     return useQuery<ExecutionStatus, Error>(['executionStatus', snippetId, executionId], () => apiService.getExecutionStatus(snippetId, executionId), {
-        enabled: !!executionId && !!snippetId, // Only run if both snippetId and executionId are available
-        refetchInterval: 1000, // Refetch every second to get updates
+        enabled: !!executionId && !!snippetId && shouldPoll,
+        refetchInterval: shouldPoll ? 1000 : false,
+        refetchOnWindowFocus: false,
+    });
+};
+
+export const useGetUsers = (name?: string) => {
+    const { apiService } = useServices();
+    return useQuery<User[], Error>(['users', name ?? ''], () => apiService.getUsers(name), {
+        keepPreviousData: true,
+        staleTime: 10_000,
     });
 };
 
@@ -102,11 +119,13 @@ export const useCreateSnippet = ({onSuccess}: {onSuccess: () => void}): UseMutat
     return useMutation<void, Error, CreateSnippet>(
         async (snippet: CreateSnippet) => {
             if (!user?.sub) throw new Error("User not authenticated");
-            // 1. Crear snippet en el servicio principal de App (metadatos en Postgres appdb)
-            await apiService.createSnippet(snippet, user.sub);
-            // 2. Si tiene contenido de código, subirlo a través del runner al asset-service
+            // El Runner valida el código (parser), guarda el contenido en el asset-service y
+            // registra el snippet en App (metadatos + permiso de owner) en una sola operación.
+            // Si el código es inválido devuelve 400 con la regla/línea/columna del error.
             if (snippet.content) {
-                await runnerService.updateSnippetContent(snippet.id, snippet.content);
+                await runnerService.createSnippet(snippet, user.sub);
+            } else {
+                await apiService.createSnippet(snippet, user.sub);
             }
         },
         {onSuccess}
@@ -207,18 +226,26 @@ export const useGetSnippetById = (id: string | null) => {
         async () => {
             if (!id) throw new Error("No snippet ID provided");
 
-            // Fire both requests in parallel
-            const metadataPromise = apiService.getSnippetData(id);
-            const contentPromise = runnerService.getSnippetContent(id);
-
-            const [metadata, content] = await Promise.all([metadataPromise, contentPromise]);
+            // App (BFF) devuelve metadatos + contenido. Si por algún motivo no trae el
+            // contenido, lo pedimos directo al Runner; si tampoco existe, se abre vacío
+            // para que el usuario pueda cargarlo y guardarlo.
+            const metadata = await apiService.getSnippetData(id);
+            let content = metadata.content ?? null;
+            if (content === null || content === undefined) {
+                try {
+                    content = await runnerService.getSnippetContent(id);
+                } catch (err) {
+                    console.warn("Snippet content not available yet:", err);
+                    content = '';
+                }
+            }
 
             // Combine the results
             return {
                 id: metadata.snippetId,
                 name: metadata.name,
                 language: metadata.language,
-                content: content,
+                content: content ?? '',
                 extension: 'ps', // Hardcode to .ps as requested
                 compliance: metadata.compliance || 'pending',
                 author: metadata.author || '',
@@ -244,13 +271,14 @@ export const useGetSharedUsers = (snippetId: string) => {
     });
 };
 
-export const useUpdateSnippetContent = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<void, Error, {
+export const useUpdateSnippetContent = ({onSuccess}: {onSuccess: (message: string) => void}): UseMutationResult<string, Error, {
     id: string;
-    content: string
+    content: string;
+    version?: string;
 }> => {
     const { runnerService } = useServices();
-    return useMutation<void, Error, { id: string; content: string }>(
-        ({id, content}: { id: string; content: string }) => runnerService.updateSnippetContent(id, content),{
+    return useMutation<string, Error, { id: string; content: string; version?: string }>(
+        ({id, content, version}: { id: string; content: string; version?: string }) => runnerService.updateSnippetContent(id, content, version),{
             onSuccess,
         }
     );
