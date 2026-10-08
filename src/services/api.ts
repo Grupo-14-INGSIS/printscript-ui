@@ -124,8 +124,9 @@ export class ApiSnippetOperations implements SnippetOperations {
                 method: 'PUT',
                 body: JSON.stringify({ email })
             });
-        } catch (err: any) {
-            if (err?.message?.includes('409') || err?.message?.includes('already exists')) {
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err);
+            if (message.includes('409') || message.includes('already exists')) {
                 return;
             }
             throw err;

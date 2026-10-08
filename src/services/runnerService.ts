@@ -100,8 +100,9 @@ export class RunnerService {
             await this.request<void>(`/api/v1/users/${userId}`, {
                 method: 'PUT',
             });
-        } catch (err: any) {
-            if (err?.message?.includes('409') || err?.message?.includes('already exists')) {
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err);
+            if (message.includes('409') || message.includes('already exists')) {
                 return;
             }
             throw err;
