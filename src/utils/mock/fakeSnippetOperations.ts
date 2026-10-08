@@ -64,6 +64,7 @@ export class FakeSnippetOperations implements SnippetOperations {
         });
     }
 
+<<<<<<< HEAD
     getSharedUsers(_snippetId: string): Promise<SharedUser[]> {
         return Promise.resolve([
             { id: "user1", email: "alice@example.com" }
@@ -77,6 +78,10 @@ export class FakeSnippetOperations implements SnippetOperations {
         ];
         const term = (name ?? "").toLowerCase();
         return Promise.resolve(term ? users.filter(u => u.name.toLowerCase().includes(term)) : users);
+=======
+    getSharedUsers(_snippetId: string): Promise<any[]> {
+        return Promise.resolve([]);
+>>>>>>> c676902a7b21abbc9c31c86623ee89726df9e40c
     }
 
     getFileTypes(): Promise<FileType[]> {

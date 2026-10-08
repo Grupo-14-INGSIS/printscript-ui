@@ -5,6 +5,7 @@ import { RunnerService } from '../services/runnerService';
 import { SnippetOperations } from '../utils/snippetOperations';
 import { FakeSnippetOperations } from '../utils/mock/fakeSnippetOperations';
 import { FakeSnippetStore } from '../utils/mock/fakeSnippetStore';
+<<<<<<< HEAD
 import { CreateSnippet } from '../utils/snippet';
 
 export class FakeRunnerService {
@@ -41,6 +42,15 @@ const USE_MOCK_SERVICES = false;
 interface ServiceContextType {
     apiService: SnippetOperations;
     runnerService: RunnerService | FakeRunnerService;
+=======
+
+export const fakeStore = new FakeSnippetStore();
+export const fakeOperations = new FakeSnippetOperations(fakeStore);
+
+interface ServiceContextType {
+    apiService: SnippetOperations;
+    runnerService: RunnerService;
+>>>>>>> c676902a7b21abbc9c31c86623ee89726df9e40c
 }
 
 const ServiceContext = createContext<ServiceContextType | null>(null);
@@ -59,6 +69,7 @@ export const ServiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const getAccessToken = useCallback((options?: GetTokenSilentlyOptions) => getAccessTokenSilently(options), [getAccessTokenSilently]);
 
     const services = useMemo(() => {
+<<<<<<< HEAD
         if (USE_MOCK_SERVICES) {
             return {
                 apiService: new FakeSnippetOperations(globalFakeStore),
@@ -66,8 +77,11 @@ export const ServiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
             };
         }
 
+=======
+        const isMock = import.meta.env.VITE_USE_MOCK === 'true';
+>>>>>>> c676902a7b21abbc9c31c86623ee89726df9e40c
         return {
-            apiService: new ApiSnippetOperations(getAccessToken),
+            apiService: isMock ? fakeOperations : new ApiSnippetOperations(getAccessToken),
             runnerService: new RunnerService(getAccessToken),
         };
     }, [getAccessToken]);
