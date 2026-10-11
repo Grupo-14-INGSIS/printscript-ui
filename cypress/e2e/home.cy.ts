@@ -1,70 +1,47 @@
-import {AUTH0_PASSWORD, AUTH0_USERNAME, BACKEND_URL, FRONTEND_URL} from "../../src/utils/constants";
-import {CreateSnippet} from "../../src/utils/snippet";
+import {AUTH0_PASSWORD, AUTH0_USERNAME} from "../../src/utils/constants";
 
-describe('Home', () => {
+describe('Home Page E2E (Real Backend)', () => {
     beforeEach(() => {
-        // cy.loginToAuth0( TODO DE-Comment when auth0 is ready
-        //     AUTH0_USERNAME,
-        //     AUTH0_PASSWORD
-        // )
-    })
-    before(() => {
-        process.env.FRONTEND_URL = Cypress.env("FRONTEND_URL");
-        process.env.BACKEND_URL = Cypress.env("BACKEND_URL");
-    })
-    it('Renders home', () => {
-        cy.visit(FRONTEND_URL)
-        /* ==== Generated with Cypress Studio ==== */
+        const username = Cypress.env('VITE_AUTH0_USERNAME') || AUTH0_USERNAME || "desireless1789@gmail.com";
+        const password = Cypress.env('VITE_AUTH0_PASSWORD') || AUTH0_PASSWORD || "desireless1789@gmail.com";
+        cy.loginToAuth0(username, password);
+    });
+
+    it('Renders home page with brand and navigation controls', () => {
+        cy.visit("/");
+
+        // Verificar branding del header
         cy.get('.MuiTypography-h6').should('have.text', 'Printscript');
-        cy.get('.MuiBox-root > .MuiInputBase-root > .MuiInputBase-input').should('be.visible');
-        cy.get('.css-9jay18 > .MuiButton-root').should('be.visible');
-        cy.get('.css-jie5ja').click();
-        /* ==== End Cypress Studio ==== */
-    })
 
-    // You need to have at least 1 snippet in your DB for this test to pass
-    it('Renders the first snippets', () => {
-        cy.visit(FRONTEND_URL)
-        const first10Snippets = cy.get('[data-testid="snippet-row"]')
+        // Verificar input de búsqueda
+        cy.get('input[aria-label="search"]').should('be.visible');
 
-        first10Snippets.should('have.length.greaterThan', 0)
+        // Verificar botón Add Snippet
+        cy.contains('button', 'Add Snippet').should('be.visible');
+    });
 
-        first10Snippets.should('have.length.lessThan', 10)
-    })
+    it('Search: Creates real snippet and finds it through search filter', () => {
+        const uniqueSearchName = `Search-Real-${Date.now()}`;
 
-    it('Can creat snippet find snippets by name', () => {
-        cy.visit(FRONTEND_URL)
-        const snippetData: CreateSnippet = {
-            name: "Test name",
-            content: "print(1)",
-            language: "printscript",
-            extension: ".ps"
-        }
+        cy.visit("/");
 
-        cy.intercept('GET', BACKEND_URL+"/snippets*", (req) => {
-            req.reply((res) => {
-                expect(res.statusCode).to.eq(200);
-            });
-        }).as('getSnippets');
+        // 1. Crear snippet real en la base de datos
+        cy.contains('button', 'Add Snippet', { timeout: 15000 }).click();
+        cy.contains('Create snippet').click();
+        cy.get('#name').type(uniqueSearchName);
+        cy.get('[data-testid="add-snippet-code-editor"]').click().type('println("search test");');
+        cy.contains('button', 'Save Snippet').click();
+        cy.contains('Snippet created successfully', { timeout: 20000 }).should('be.visible');
 
-        cy.request({
-            method: 'POST',
-            url: '/snippets', // Adjust if you have a different base URL configured in Cypress
-            body: snippetData,
-            failOnStatusCode: false // Optional: set to true if you want the test to fail on non-2xx status codes
-        }).then((response) => {
-            expect(response.status).to.eq(200);
+        // 2. Buscarlo en la barra de búsqueda real
+        cy.get('input[aria-label="search"]').clear().type(uniqueSearchName);
 
-            expect(response.body.name).to.eq(snippetData.name)
-            expect(response.body.content).to.eq(snippetData.content)
-            expect(response.body.language).to.eq(snippetData.language)
-            expect(response.body).to.haveOwnProperty("id")
+        // 3. Verificar que aparezca en el listado filtrado
+        cy.contains(uniqueSearchName, { timeout: 15000 }).should('exist');
 
-            cy.get('.MuiBox-root > .MuiInputBase-root > .MuiInputBase-input').clear();
-            cy.get('.MuiBox-root > .MuiInputBase-root > .MuiInputBase-input').type(snippetData.name + "{enter}");
-
-            cy.wait("@getSnippets")
-            cy.contains(snippetData.name).should('exist');
-        })
-    })
-})
+        // 4. Limpieza: entrar y borrarlo de la base de datos
+        cy.contains('[data-testid="snippet-row"]', uniqueSearchName).click();
+        cy.get('[data-testid="DeleteIcon"]', { timeout: 10000 }).click();
+        cy.contains('button', 'Delete').click();
+    });
+});

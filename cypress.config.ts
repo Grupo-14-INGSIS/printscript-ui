@@ -22,7 +22,8 @@ const defaultHost = isProdBranch
     ? "https://snippet26prod.duckdns.org"
     : "https://snippet26dev.duckdns.org";
 
-const frontendUrl = process.env.CYPRESS_BASE_URL || (isProdBranch ? "https://snippet26prod.duckdns.org" : (process.env.VITE_FRONTEND_URL || defaultHost));
+const baseUrl = process.env.CYPRESS_BASE_URL || (isProdBranch ? "https://snippet26prod.duckdns.org" : "https://snippet26dev.duckdns.org");
+const frontendUrl = process.env.CYPRESS_BASE_URL || process.env.VITE_FRONTEND_URL || baseUrl;
 const backendUrl = isProdBranch ? "https://snippet26prod.duckdns.org" : (process.env.VITE_BACKEND_URL || defaultHost);
 const runnerUrl = isProdBranch ? "https://snippet26prod.duckdns.org/runner" : (process.env.VITE_RUNNER_URL || `${defaultHost}/runner`);
 const apiUrl = isProdBranch ? "https://snippet26prod.duckdns.org" : (process.env.VITE_API_URL || defaultHost);
@@ -46,6 +47,6 @@ export default defineConfig({
             return config;
         },
         experimentalStudio: true,
-        baseUrl: frontendUrl,
+        baseUrl: baseUrl,
     },
 });

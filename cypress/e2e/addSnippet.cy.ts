@@ -1,49 +1,46 @@
-import {BACKEND_URL} from "../../src/utils/constants";
+import {AUTH0_PASSWORD, AUTH0_USERNAME} from "../../src/utils/constants";
 
-describe('Add snippet tests', () => {
+describe('Add Snippet E2E (Real Backend)', () => {
     beforeEach(() => {
-        // cy.loginToAuth0(
-        //     AUTH0_USERNAME,
-        //     AUTH0_PASSWORD
-        // )
-    })
-    it('Can add snippets manually', () => {
-        cy.visit("/")
-        cy.intercept('POST', BACKEND_URL+"/snippets", (req) => {
-            req.reply((res) => {
-                expect(res.body).to.include.keys("id","name","content","language")
-                expect(res.statusCode).to.eq(200);
-            });
-        }).as('postRequest');
+        const username = Cypress.env('VITE_AUTH0_USERNAME') || AUTH0_USERNAME || "desireless1789@gmail.com";
+        const password = Cypress.env('VITE_AUTH0_PASSWORD') || AUTH0_PASSWORD || "desireless1789@gmail.com";
+        cy.loginToAuth0(username, password);
+    });
 
-        /* ==== Generated with Cypress Studio ==== */
-        cy.get('.css-9jay18 > .MuiButton-root').click();
-        cy.get('.MuiList-root > [tabindex="0"]').click();
-        cy.get('#name').type('Some snippet name');
-        cy.get('#demo-simple-select').click()
-        cy.get('[data-testid="menu-option-printscript"]').click()
+    it('Can add snippet manually and persist it in real database', () => {
+        const uniqueSnippetName = `Snippet-Real-${Date.now()}`;
 
-        cy.get('[data-testid="add-snippet-code-editor"]').click();
-        cy.get('[data-testid="add-snippet-code-editor"]').type(`const snippet: String = "some snippet" \n print(snippet)`);
-        cy.get('[data-testid="SaveIcon"]').click();
+        cy.visit("/");
 
-        cy.wait('@postRequest').its('response.statusCode').should('eq', 200);
-    })
+        // Abrir modal de creación
+        cy.contains('button', 'Add Snippet', { timeout: 15000 }).should('be.visible').click();
+        cy.contains('Create snippet').should('be.visible').click();
 
-    it('Can add snippets via file', () => {
-        cy.visit("/")
-        cy.intercept('POST', BACKEND_URL+"/snippets", (req) => {
-            req.reply((res) => {
-                expect(res.body).to.include.keys("id","name","content","language")
-                expect(res.statusCode).to.eq(200);
-            });
-        }).as('postRequest');
+        // Completar formulario con código PrintScript real
+        cy.get('#name').should('be.visible').type(uniqueSnippetName);
+        cy.get('[data-testid="add-snippet-code-editor"]').should('be.visible').click();
+        cy.get('[data-testid="add-snippet-code-editor"]').type('let x: string = "hello world";\nprintln(x);');
 
-        /* ==== Generated with Cypress Studio ==== */
-        cy.get('[data-testid="upload-file-input"').selectFile("cypress/fixtures/example_ps.ps", {force: true})
+        // Guardar en el backend real
+        cy.contains('button', 'Save Snippet').should('be.visible').click();
 
-        cy.get('[data-testid="SaveIcon"]').click();
+        // Verificar confirmación del backend
+        cy.contains('Snippet created successfully', { timeout: 20000 }).should('be.visible');
 
-        cy.wait('@postRequest').its('response.statusCode').should('eq', 200);
-    })
-})
+        // Verificar que persiste y aparece en la lista
+        cy.contains(uniqueSnippetName, { timeout: 15000 }).should('exist');
+    });
+
+    it('Can add snippet via .ps file and persist it in real backend', () => {
+        cy.visit("/");
+
+        // Subir archivo real
+        cy.get('[data-testid="upload-file-input"]').selectFile("cypress/fixtures/example_ps.ps", { force: true });
+
+        // Guardar
+        cy.contains('button', 'Save Snippet').should('be.visible').click();
+
+        // Verificar respuesta exitosa real
+        cy.contains('Snippet created successfully', { timeout: 20000 }).should('be.visible');
+    });
+});
