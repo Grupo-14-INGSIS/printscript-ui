@@ -51,3 +51,25 @@ Cypress.Commands.add('loginToAuth0', (username?: string, password?: string) => {
     log.snapshot('after');
     log.end();
 });
+
+/**
+ * Access token real de la sesión de Auth0 (el mismo que usa la app), leído del cache
+ * que auth0-spa-js guarda en localStorage. Sirve para hacer cy.request contra el
+ * backend autenticado, igual que lo haría la UI.
+ */
+Cypress.Commands.add('getAccessToken', () => {
+    return cy.window().then((win) => {
+        const key = Object.keys(win.localStorage).find((k) => {
+            if (!k.startsWith('@@auth0spajs@@::')) return false;
+            try {
+                const parsed = JSON.parse(win.localStorage.getItem(k) ?? '{}');
+                return typeof parsed?.body?.access_token === 'string';
+            } catch {
+                return false;
+            }
+        });
+        expect(key, 'Auth0 access token cache entry').to.exist;
+        const token = JSON.parse(win.localStorage.getItem(key!)!).body.access_token as string;
+        return token;
+    });
+});
