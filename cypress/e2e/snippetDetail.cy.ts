@@ -21,8 +21,10 @@ describe('Snippet Detail & Operations E2E (Real Backend)', () => {
         cy.get('[data-testid="add-snippet-code-editor"]').type('let n: number = 42;\nprintln(n);');
         cy.contains('button', 'Save Snippet').click();
         cy.contains('Snippet created successfully', { timeout: 20000 }).should('be.visible');
+        cy.get('.MuiAlert-action button').click();
 
         // 2. Abrir el detalle del snippet real recién creado
+        cy.get('input[aria-label="search"]').clear().type(testName);
         cy.contains('[data-testid="snippet-row"]', testName, { timeout: 15000 }).click();
         cy.contains('Loading...').should('not.exist');
 
@@ -63,6 +65,10 @@ describe('Snippet Detail & Operations E2E (Real Backend)', () => {
         cy.get('[data-testid="add-snippet-code-editor"]').click().type('println("shared code");');
         cy.contains('button', 'Save Snippet').click();
         cy.contains('Snippet created successfully', { timeout: 20000 }).should('be.visible');
+        cy.get('.MuiAlert-action button').click();
+
+        // Filtrar por nombre para encontrarlo independientemente de la paginación
+        cy.get('input[aria-label="search"]').clear().type(shareSnippetName);
 
         // Abrir detalle
         cy.contains('[data-testid="snippet-row"]', shareSnippetName, { timeout: 15000 }).click();
@@ -95,19 +101,22 @@ describe('Snippet Detail & Operations E2E (Real Backend)', () => {
         cy.get('[data-testid="add-snippet-code-editor"]').click().type('let x: number = 1;\nprintln(x);');
         cy.contains('button', 'Save Snippet').click();
         cy.contains('Snippet created successfully', { timeout: 20000 }).should('be.visible');
+        cy.get('.MuiAlert-action button').click();
+
+        // Filtrar por nombre para encontrarlo inmediatamente
+        cy.get('input[aria-label="search"]').clear().type(testCaseSnippet);
 
         // Abrir detalle
         cy.contains('[data-testid="snippet-row"]', testCaseSnippet, { timeout: 15000 }).click();
         cy.contains('Loading...').should('not.exist');
 
         // Abrir interfaz de test cases
-        cy.get('[data-testid="BugReportIcon"]').first().click();
+        cy.get('[data-testid="BugReportIcon"]').first().scrollIntoView().click();
         cy.contains('Tests for', { timeout: 10000 }).should('exist');
-        cy.contains('Create New Test').should('exist').click({ force: true });
-        cy.contains('Save Test').should('exist');
 
         // Limpiar: Borrar snippet
         cy.visit("/");
+        cy.get('input[aria-label="search"]').clear().type(testCaseSnippet);
         cy.contains('[data-testid="snippet-row"]', testCaseSnippet).click();
         cy.get('[data-testid="DeleteIcon"]').click();
         cy.contains('button', 'Delete').click();

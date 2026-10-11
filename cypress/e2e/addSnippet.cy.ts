@@ -26,6 +26,10 @@ describe('Add Snippet E2E (Real Backend)', () => {
 
         // Verificar confirmación del backend
         cy.contains('Snippet created successfully', { timeout: 20000 }).should('be.visible');
+        cy.get('.MuiAlert-action button').click();
+
+        // Filtrar por nombre para encontrarlo independientemente de la paginación
+        cy.get('input[aria-label="search"]').clear().type(uniqueSnippetName);
 
         // Verificar que persiste y aparece en la lista
         cy.contains(uniqueSnippetName, { timeout: 15000 }).should('exist');

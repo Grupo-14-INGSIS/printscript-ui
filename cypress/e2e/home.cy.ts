@@ -32,6 +32,7 @@ describe('Home Page E2E (Real Backend)', () => {
         cy.get('[data-testid="add-snippet-code-editor"]').click().type('println("search test");');
         cy.contains('button', 'Save Snippet').click();
         cy.contains('Snippet created successfully', { timeout: 20000 }).should('be.visible');
+        cy.get('.MuiAlert-action button').click();
 
         // 2. Buscarlo en la barra de búsqueda real
         cy.get('input[aria-label="search"]').clear().type(uniqueSearchName);
