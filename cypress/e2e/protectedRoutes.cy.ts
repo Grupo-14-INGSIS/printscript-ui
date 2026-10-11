@@ -1,39 +1,45 @@
 import {AUTH0_USERNAME, AUTH0_PASSWORD} from "../../src/utils/constants";
 
+// La app protege las rutas con Auth0: sin sesión, /login redirige al Universal Login de
+// Auth0 (otro origen), así que las verificaciones de esa página van dentro de cy.origin.
+const auth0Domain = Cypress.env('VITE_AUTH0_DOMAIN') || 'dev-65tlgyzfpbzeka8a.us.auth0.com';
+
 describe('Protected routes test', () => {
-  const auth0Domain = Cypress.env('VITE_AUTH0_DOMAIN') || 'dev-65tlgyzfpbzeka8a.us.auth0.com';
+    it('should redirect to login when accessing a protected route unauthenticated', () => {
+        // Visit the protected route
+        cy.visit('/');
 
-  it('should redirect to the Auth0 login page when accessing a protected route unauthenticated', () => {
-    cy.visit('/');
-
-    cy.origin(`https://${auth0Domain}`, () => {
-      // Assert the URL while inside the Auth0 domain context
-      cy.url().should('include', Cypress.env('VITE_AUTH0_DOMAIN') || 'dev-65tlgyzfpbzeka8a.us.auth0.com');
+        // Check if the URL is redirected to the login page (Auth0: https://<domain>/u/login?...)
+        cy.origin(`https://${auth0Domain}`, () => {
+            cy.url().should('include', '/login');
+        });
     });
-  });
 
-  it('should display login content on the Auth0 page', () => {
-    // Visit the root path, which will redirect to /login and then to Auth0
-    cy.visit('/');
+    it('should display login content', () => {
+        // Visit the login page
+        cy.visit('/login');
 
-    // Interact with the Auth0 login page within cy.origin
-    cy.origin(`https://${auth0Domain}`, () => {
-      // Look for text that is likely to appear on a login page
-      cy.contains('Continue').should('exist');
-      cy.get('input#password').should('exist');
+        // Look for text that is likely to appear on a login page
+        cy.origin(`https://${auth0Domain}`, () => {
+            cy.contains('Log in').should('exist');
+            cy.contains('Password').should('exist');
+            cy.get('input#username').should('exist');
+            cy.get('input#password').should('exist');
+        });
     });
-  });
 
-  it('should not redirect to login when the user is already authenticated', () => {
-    cy.loginToAuth0(
-        AUTH0_USERNAME,
-        AUTH0_PASSWORD
-    );
+    it('should not redirect to login when the user is already authenticated', () => {
+        cy.loginToAuth0(
+            AUTH0_USERNAME,
+            AUTH0_PASSWORD
+        )
 
-    cy.visit('/');
+        cy.visit('/');
 
-    // Check if the URL is not the Auth0 domain, implying we are on our app
-    cy.url().should('not.include', auth0Domain);
-    cy.url().should('not.include', '/login');
-  });
-});
+        // Check if the URL is redirected to the login page
+        cy.url().should('not.include', '/login');
+        cy.url().should('not.include', auth0Domain);
+        cy.contains('button', 'Add Snippet').should('be.visible');
+    });
+
+})

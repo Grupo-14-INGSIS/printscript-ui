@@ -1,5 +1,5 @@
 import { defineConfig } from "cypress";
-import dotenv from "dotenv";
+import * as dotenv from "dotenv";
 import { execSync } from "child_process";
 
 dotenv.config();
@@ -21,15 +21,21 @@ const isProdBranch = currentBranch === "main" || currentBranch === "production";
 const defaultHost = isProdBranch
     ? "https://snippet26prod.duckdns.org"
     : "https://snippet26dev.duckdns.org";
+const baseUrl = process.env.CYPRESS_BASE_URL || defaultHost;
+const isLocal = baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1");
 
-const frontendUrl = process.env.CYPRESS_BASE_URL || (isProdBranch ? "https://snippet26prod.duckdns.org" : (process.env.VITE_FRONTEND_URL || defaultHost));
-const backendUrl = isProdBranch ? "https://snippet26prod.duckdns.org" : (process.env.VITE_BACKEND_URL || defaultHost);
-const runnerUrl = isProdBranch ? "https://snippet26prod.duckdns.org/runner" : (process.env.VITE_RUNNER_URL || `${defaultHost}/runner`);
-const apiUrl = isProdBranch ? "https://snippet26prod.duckdns.org" : (process.env.VITE_API_URL || defaultHost);
+const frontendUrl = baseUrl;
+const backendUrl = isLocal
+    ? "http://localhost:19081"
+    : (isProdBranch ? "https://snippet26prod.duckdns.org" : "https://snippet26dev.duckdns.org");
+const runnerUrl = isLocal
+    ? "http://localhost:19082"
+    : (isProdBranch ? "https://snippet26prod.duckdns.org/runner" : "https://snippet26dev.duckdns.org/runner");
+const apiUrl = backendUrl;
 
 export default defineConfig({
     e2e: {
-        setupNodeEvents(on, config) {
+        setupNodeEvents(_on, config) {
             config.env = {
                 ...config.env,
                 VITE_FRONTEND_URL: frontendUrl,
@@ -46,6 +52,8 @@ export default defineConfig({
             return config;
         },
         experimentalStudio: true,
-        baseUrl: frontendUrl,
+        baseUrl: baseUrl,
+        viewportWidth: 1280,
+        viewportHeight: 800,
     },
 });

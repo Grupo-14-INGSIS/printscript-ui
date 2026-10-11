@@ -1,112 +1,91 @@
-import {AUTH0_PASSWORD, AUTH0_USERNAME} from "../../src/utils/constants";
+import {AUTH0_PASSWORD, AUTH0_USERNAME, FRONTEND_URL, RUNNER_URL} from "../../src/utils/constants";
 import {CreateSnippet} from "../../src/utils/snippet";
+import {v4 as uuidv4} from "uuid";
+
+// GET /api/v1/snippets?page=...&name=...  (listado real de App)
+const listSnippetsUrl = /\/api\/v1\/snippets(\?.*)?$/;
 
 describe('Home', () => {
     beforeEach(() => {
-        const username = AUTH0_USERNAME || Cypress.env('VITE_AUTH0_USERNAME') || "desireless1789@gmail.com";
-        const password = AUTH0_PASSWORD || Cypress.env('VITE_AUTH0_PASSWORD') || "desireless1789@gmail.com";
-        cy.loginToAuth0(username, password);
-
-        // Intercept user registration
-        cy.intercept('PUT', '**/users*', {
-            statusCode: 200,
-            body: {},
-        }).as("registerUser");
-    });
+        cy.loginToAuth0(
+            AUTH0_USERNAME,
+            AUTH0_PASSWORD
+        )
+    })
 
     it('Renders home', () => {
-        cy.intercept('GET', /\/snippets(\?.*)?$/, {
-            statusCode: 200,
-            body: {},
-        }).as("getSnippets");
-
-        cy.visit("/");
-
-        // Assert header brand name
+        cy.visit(FRONTEND_URL)
         cy.get('.MuiTypography-h6').should('have.text', 'Printscript');
-
-        // Assert search bar is visible
         cy.get('input[aria-label="search"]').should('be.visible');
+        cy.contains('button', 'Add Snippet').should('be.visible').click();
+        cy.contains('li', 'Create snippet').should('be.visible');
+        cy.contains('li', 'Load snippet from file').should('be.visible');
+    })
 
-        // Assert Add Snippet button is visible
-        cy.contains('button', 'Add Snippet').should('be.visible');
-    });
-
+    // You need to have at least 1 snippet in your DB for this test to pass
     it('Renders the first snippets', () => {
-        const fakeSnippets: Record<string, { name: string; language: string; author: string; compliance: string }> = {
-            "1": { name: "Snippet Alpha", language: "printscript", author: "alice", compliance: "compliant" },
-            "2": { name: "Snippet Beta", language: "printscript", author: "bob", compliance: "compliant" },
-            "3": { name: "Snippet Gamma", language: "printscript", author: "charlie", compliance: "compliant" },
-        };
-
-        cy.intercept('GET', /\/snippets(\?.*)?$/, {
-            statusCode: 200,
-            body: fakeSnippets,
-        }).as("getSnippets");
-
-        cy.visit("/");
-
-        const first10Snippets = cy.get('[data-testid="snippet-row"]');
-
-        first10Snippets.should('have.length.greaterThan', 0);
-        first10Snippets.should('have.length.lessThan', 10);
-    });
-
-    it('Can creat snippet find snippets by name', () => {
-        const snippetData: CreateSnippet = {
-            id: "test-id",
-            name: "Test name",
-            content: 'println("Hello");',
-            language: "printscript",
-            extension: ".ps"
-        };
-
-        let searchActive = false;
-
-        cy.intercept('GET', /\/snippets(\?.*)?$/, (req) => {
-            if (searchActive || req.url.includes('name=Test') || req.url.includes('name=test')) {
-                req.reply({
-                    statusCode: 200,
-                    body: {
-                        "test-id": {
-                            name: snippetData.name,
-                            language: snippetData.language,
-                            author: "alice",
-                            compliance: "compliant",
-                        }
-                    },
-                });
-            } else {
-                req.reply({
-                    statusCode: 200,
-                    body: {},
-                });
-            }
+        cy.intercept('GET', listSnippetsUrl, (req) => {
+            req.continue((res) => {
+                expect(res.statusCode).to.eq(200);
+            });
         }).as('getSnippets');
 
-        cy.intercept('PUT', /\/api\/v1\/snippets\/[^/?]+$/, (req) => {
-            req.reply({
-                statusCode: 200,
-                body: { ...snippetData, id: "test-id" },
+        cy.visit(FRONTEND_URL)
+        cy.wait('@getSnippets')
+
+        cy.get('[data-testid="snippet-row"]').should('have.length.greaterThan', 0)
+        // la página muestra como máximo pageSize (10) filas
+        cy.get('[data-testid="snippet-row"]').should('have.length.at.most', 10)
+    })
+
+    it('Can creat snippet find snippets by name', () => {
+        cy.visit(FRONTEND_URL)
+        const snippetData: CreateSnippet = {
+            id: uuidv4(),
+            name: `Test name ${Date.now()}`,
+            content: "println(1);",
+            language: "printscript",
+            extension: ".ps"
+        }
+
+        // La búsqueda por nombre pega al listado real con ?name=...
+        cy.intercept('GET', /\/api\/v1\/snippets\?.*name=/, (req) => {
+            req.continue((res) => {
+                expect(res.statusCode).to.eq(200);
             });
-        }).as('createSnippet');
+        }).as('searchSnippets');
 
-        cy.visit("/");
+        // Se crea el snippet por API, con el token real de la sesión (igual que la UI)
+        cy.getAccessToken().then((token) => {
+            const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+            const userId = JSON.parse(atob(payload)).sub as string;
 
-        // 1. Create snippet
-        cy.contains('button', 'Add Snippet').click();
-        cy.contains('Create snippet').click();
-        cy.get('#name').type(snippetData.name);
-        cy.get('[data-testid="add-snippet-code-editor"]').click();
-        cy.get('[data-testid="add-snippet-code-editor"]').type(snippetData.content);
-        cy.contains('button', 'Save Snippet').click();
-        cy.contains('Snippet created successfully').should('be.visible');
+            cy.request({
+                method: 'PUT',
+                url: `${RUNNER_URL}/api/v1/snippets/${snippetData.id}`,
+                headers: {Authorization: `Bearer ${token}`},
+                body: {
+                    userId: userId,
+                    name: snippetData.name,
+                    language: snippetData.language,
+                    snippet: snippetData.content,
+                },
+                failOnStatusCode: false
+            }).then((response) => {
+                expect(response.status).to.eq(201);
 
-        // 2. Search for the snippet by name
-        searchActive = true;
-        cy.get('input[aria-label="search"]').clear().type(snippetData.name);
+                expect(response.body.name).to.eq(snippetData.name)
+                expect(response.body.content).to.eq(snippetData.content)
+                expect(response.body.language).to.eq(snippetData.language)
+                expect(response.body).to.haveOwnProperty("id")
+                expect(response.body.id).to.eq(snippetData.id)
 
-        cy.wait('@getSnippets');
-        cy.contains(snippetData.name).should('exist');
-    });
-});
+                cy.get('input[aria-label="search"]').clear();
+                cy.get('input[aria-label="search"]').type(snippetData.name + "{enter}");
+
+                cy.wait("@searchSnippets")
+                cy.contains('[data-testid="snippet-row"]', snippetData.name).should('exist');
+            })
+        })
+    })
+})

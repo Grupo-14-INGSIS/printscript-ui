@@ -1,76 +1,63 @@
-import {AUTH0_PASSWORD, AUTH0_USERNAME} from "../../src/utils/constants";
+import {AUTH0_PASSWORD, AUTH0_USERNAME, RUNNER_URL} from "../../src/utils/constants";
 
 describe('Add snippet tests', () => {
     beforeEach(() => {
-        const username = AUTH0_USERNAME || Cypress.env('VITE_AUTH0_USERNAME') || "desireless1789@gmail.com";
-        const password = AUTH0_PASSWORD || Cypress.env('VITE_AUTH0_PASSWORD') || "desireless1789@gmail.com";
-        cy.loginToAuth0(username, password);
+        cy.loginToAuth0(
+            AUTH0_USERNAME,
+            AUTH0_PASSWORD
+        )
+    })
 
-        // Intercept user registration
-        cy.intercept('PUT', '**/users*', {
-            statusCode: 200,
-            body: {},
-        }).as("registerUser");
-
-        // Intercept initial snippets list
-        cy.intercept('GET', /\/snippets(\?.*)?$/, {
-            statusCode: 200,
-            body: {},
-        }).as("getSnippets");
-    });
-
-    // Solo el PUT de creacion de snippet (Runner): el glob '**/snippet*/**' matcheaba tambien
-    // el host snippet26dev.duckdns.org y capturaba el PUT /api/v1/users del login.
-    const createSnippetUrl = /\/api\/v1\/snippets\/[^/?]+$/;
+    // Crear un snippet es un PUT al Runner (valida el código, guarda el contenido y lo
+    // registra en App). La request va al backend real; acá solo se verifica la respuesta.
+    const createSnippetUrl = RUNNER_URL + "/api/v1/snippets/*";
 
     it('Can add snippets manually', () => {
+        const snippetName = `Some snippet name ${Date.now()}`;
+        cy.visit("/")
         cy.intercept('PUT', createSnippetUrl, (req) => {
-            expect(req.body).to.have.property('name', 'Some snippet name');
-            expect(req.body).to.have.property('language', 'printscript');
-            req.reply({
-                statusCode: 200,
-                body: {},
+            req.continue((res) => {
+                expect(res.statusCode).to.eq(201);
+                expect(res.body).to.include.keys("id", "name", "content", "language")
+                expect(res.body.name).to.eq(snippetName);
+                expect(res.body.language).to.eq("printscript");
             });
-        }).as('createSnippet');
+        }).as('putRequest');
 
-        cy.visit("/");
-
-        // Open Add Snippet modal
         cy.contains('button', 'Add Snippet').click();
-        cy.contains('Create snippet').click();
+        cy.contains('li', 'Create snippet').click();
+        cy.get('#name').type(snippetName);
+        cy.get('#demo-simple-select').click()
+        cy.get('[data-testid="menu-option-printscript"]').click()
 
-        // Fill snippet form with valid PrintScript syntax
-        cy.get('#name').type('Some snippet name');
         cy.get('[data-testid="add-snippet-code-editor"]').click();
-        cy.get('[data-testid="add-snippet-code-editor"]').type('println("some snippet");');
+        cy.get('[data-testid="add-snippet-code-editor"]').type('let snippet: string = "some snippet";\nprintln(snippet);');
+        cy.get('[data-testid="SaveIcon"]').click();
 
-        // Save
-        cy.contains('button', 'Save Snippet').click();
-
-        // Assert API request and user feedback snackbar
-        cy.wait('@createSnippet').its('response.statusCode').should('eq', 200);
+        cy.wait('@putRequest').its('response.statusCode').should('eq', 201);
         cy.contains('Snippet created successfully').should('be.visible');
-    });
+
+        // Quedó persistido: aparece al buscarlo por nombre
+        cy.get('input[aria-label="search"]').clear().type(snippetName);
+        cy.contains('[data-testid="snippet-row"]', snippetName).should('exist');
+    })
 
     it('Can add snippets via file', () => {
+        cy.visit("/")
         cy.intercept('PUT', createSnippetUrl, (req) => {
-            expect(req.body).to.have.property('language', 'printscript');
-            req.reply({
-                statusCode: 200,
-                body: {},
+            req.continue((res) => {
+                expect(res.statusCode).to.eq(201);
+                expect(res.body).to.include.keys("id", "name", "content", "language")
+                expect(res.body.name).to.eq("example_ps");
+                expect(res.body.content).to.include("println(num1 + num2);");
             });
-        }).as('createSnippet');
+        }).as('putRequest');
 
-        cy.visit("/");
+        cy.get('[data-testid="upload-file-input"]').selectFile("cypress/fixtures/example_ps.ps", {force: true})
 
-        // Select file from fixtures
-        cy.get('[data-testid="upload-file-input"]').selectFile("cypress/fixtures/example_ps.ps", { force: true });
+        cy.get('[data-testid="SaveIcon"]').click();
 
-        // Save uploaded snippet
-        cy.contains('button', 'Save Snippet').click();
-
-        // Assert API request and user feedback snackbar
-        cy.wait('@createSnippet').its('response.statusCode').should('eq', 200);
+        cy.wait('@putRequest').its('response.statusCode').should('eq', 201);
         cy.contains('Snippet created successfully').should('be.visible');
-    });
-});
+    })
+})

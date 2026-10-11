@@ -4,8 +4,11 @@ import {
     Box,
     Button,
     CircularProgress,
+    FormControl,
     Input,
     InputLabel,
+    MenuItem,
+    Select,
     Typography
 } from "@mui/material";
 import {highlight, languages} from "prismjs";
@@ -28,7 +31,7 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
     onClose: () => void,
     defaultSnippet?: CreateSnippetWithLang
 }) => {
-    const language = "printscript"; // Hardcoded language
+    const [language, setLanguage] = useState(defaultSnippet?.language ?? "printscript");
     const [code, setCode] = useState(defaultSnippet?.content ?? "");
     const [snippetName, setSnippetName] = useState(defaultSnippet?.name ?? "");
     const [validationError, setValidationError] = useState<string | null>(null);
@@ -66,6 +69,7 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
         if (defaultSnippet) {
             setCode(defaultSnippet?.content);
             setSnippetName(defaultSnippet?.name);
+            setLanguage(defaultSnippet?.language ?? "printscript");
             setValidationError(null);
         }
     }, [defaultSnippet]);
@@ -102,13 +106,28 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
                 <InputLabel htmlFor="name">Name</InputLabel>
                 <Input onChange={e => setSnippetName(e.target.value)} value={snippetName} id="name"
                        sx={{width: '50%'}}/>
+                <FormControl variant="standard" sx={{width: '50%'}}>
+                    <InputLabel id="language-select-label">Language</InputLabel>
+                    <Select
+                        labelId="language-select-label"
+                        id="demo-simple-select"
+                        value={language}
+                        onChange={e => setLanguage(e.target.value)}
+                    >
+                        {(fileTypes && fileTypes.length > 0 ? fileTypes : [{language: "printscript", extension: "ps", version: "1.1"}]).map((ft: FileType) => (
+                            <MenuItem key={ft.language} value={ft.language} data-testid={`menu-option-${ft.language}`}>
+                                {ft.language}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
             </Box>
             {validationError && (
                 <Alert severity="error" sx={{ whiteSpace: 'pre-wrap', my: 1 }}>
                     {validationError}
                 </Alert>
             )}
-            <InputLabel>Code Snippet (PrintScript)</InputLabel>
+            <InputLabel>Code Snippet ({language})</InputLabel>
             <Box width={"100%"} sx={{
                 backgroundColor: 'black', color: 'white', borderRadius: "8px",
             }}>
