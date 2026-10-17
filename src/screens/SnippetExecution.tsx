@@ -44,25 +44,26 @@ export const SnippetExecution = ({ executionId, executionStatus, onSendInput, is
 
     return (
       <>
+        {/* El output queda siempre visible: mientras corre se va completando línea por línea (US #9 y #10) */}
         <Bòx flex={1} overflow={"none"} minHeight={200} bgcolor={'black'} color={'white'} code={currentOutput}>
-            {isSendingInput ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-                    <CircularProgress />
-                </Box>
-            ) : (
-                <Editor
-                  value={currentOutput}
-                  padding={10}
-                  onValueChange={() => {}} // No-op for read-only editor
-                  highlight={(code) => highlight(code, languages.js, 'javascript')}
-                  readOnly // Output editor is read-only
-                  style={{
-                      fontFamily: "monospace",
-                      fontSize: 17,
-                  }}
-                />
-            )}
+            <Editor
+              value={currentOutput}
+              padding={10}
+              onValueChange={() => {}} // No-op for read-only editor
+              highlight={(code) => highlight(code, languages.js, 'javascript')}
+              readOnly // Output editor is read-only
+              style={{
+                  fontFamily: "monospace",
+                  fontSize: 17,
+              }}
+            />
         </Bòx>
+        {isSendingInput && (
+            <Box display="flex" alignItems="center" gap={1} sx={{ mt: 1 }}>
+                <CircularProgress size={16} />
+                <Typography variant="body2" color="textSecondary">Running...</Typography>
+            </Box>
+        )}
         {executionStatus?.status === ExecutionEventType.WAITING && (
             <>
               <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>

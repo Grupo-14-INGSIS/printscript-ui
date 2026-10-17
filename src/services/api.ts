@@ -4,7 +4,7 @@ import { SnippetOperations } from "../utils/snippetOperations.ts";
 import { ComplianceEnum, CreateSnippet, PaginatedSnippets, Snippet, SnippetData, SnippetFilters, UpdateSnippet } from "../utils/snippet.ts";
 import { FileType } from "../types/FileType.ts";
 import { GetTokenSilentlyOptions } from "@auth0/auth0-react";
-import { StartExecutionResponse, ExecutionStatus, CancelExecutionRequest, SharedUser } from '../types/runner.ts';
+import { StartExecutionResponse, ExecutionStatus, CancelExecutionRequest, SharedUser, ExecutionKind, DownloadVariant } from '../types/runner.ts';
 import { TestCase, CreateTestCase, TestCaseResult } from '../types/TestCase.ts';
 import { formatPrintScriptCode } from "../utils/formatter.ts";
 import { lintPrintScriptCode } from "../utils/linter.ts";
@@ -392,7 +392,18 @@ export class ApiSnippetOperations implements SnippetOperations {
             return formatPrintScriptCode(snippet, []);
         }
     }
-    async lintSnippet(snippet: string): Promise<string> {
+    async lintSnippet(snippet: string, snippetId?: string): Promise<string> {
+        if (snippetId) {
+            // Mismo analizador de PrintScript y mismas reglas (las del dueño) que calculan "compliant"
+            // en la lista: así el resultado del botón Lint no puede contradecirla. Se manda el código
+            // del editor, que puede no estar guardado todavía.
+            const result = await this.request<unknown>(`/api/v1/snippets/${snippetId}/tasks/lint`, {
+                method: 'POST',
+                body: JSON.stringify({ content: snippet }),
+            });
+            return typeof result === 'string' ? result : '';
+        }
+        // Sin snippet guardado no hay backend al que preguntarle: linter local (aproximado)
         try {
             const rules = await this.getLintingRules("printscript");
             const result = lintPrintScriptCode(snippet, rules);
@@ -436,7 +447,28 @@ export class ApiSnippetOperations implements SnippetOperations {
         });
     }
 
-    getExecutionStatus(snippetId: string, _executionId: string): Promise<ExecutionStatus> {
-        return this.request<ExecutionStatus>(`/api/v1/snippets/${snippetId}/executions/status`);
+    /**
+     * Estado y output impreso hasta ahora. `kind` = run (ejecución) o test (corrida de un test).
+     * Se consulta mientras corre para mostrar el output a medida que se evalúa (US #9 y #10).
+     */
+    getExecutionStatus(snippetId: string, _executionId: string, kind: ExecutionKind = 'run'): Promise<ExecutionStatus> {
+        return this.request<ExecutionStatus>(`/api/v1/snippets/${snippetId}/executions/status?kind=${kind}`);
+    }
+
+    /**
+     * US #13: descarga la versión original (como la escribió el usuario) o la formateada (con las
+     * reglas del dueño). Devuelve el texto tal cual: no se intenta parsear como JSON.
+     */
+    async downloadSnippet(snippetId: string, variant: DownloadVariant): Promise<string> {
+        const token = await this.getAccessToken({
+            authorizationParams: { audience: import.meta.env.VITE_AUTH0_AUDIENCE },
+        });
+        const response = await fetch(`${BACKEND_URL}/api/v1/snippets/${snippetId}/download?variant=${variant}`, {
+            headers: { ...(token && { 'Authorization': `Bearer ${token}` }) },
+        });
+        if (!response.ok) {
+            throw new Error((await response.text()) || `HTTP error! status: ${response.status}`);
+        }
+        return response.text();
     }
 }

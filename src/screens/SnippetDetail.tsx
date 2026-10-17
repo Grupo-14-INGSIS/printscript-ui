@@ -4,7 +4,7 @@ import {highlight, languages} from "prismjs";
 import "prismjs/components/prism-clike";
 import "prismjs/components/prism-javascript";
 import "prismjs/themes/prism-okaidia.css";
-import {Alert, Box, CircularProgress, IconButton, Tooltip, Typography, Select, MenuItem, FormControl, InputLabel, Tab, Tabs, Switch, FormControlLabel, Chip} from "@mui/material";
+import {Alert, Box, CircularProgress, IconButton, Tooltip, Typography, Select, Menu, MenuItem, FormControl, InputLabel, Tab, Tabs, Switch, FormControlLabel, Chip} from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import {
   useUpdateSnippetContent, useStartExecution, useCancelExecution, useGetTestCases, useLintSnippet
@@ -23,6 +23,9 @@ import { ExecutionEventType, StartExecutionResponse } from "../types/runner.ts";
 import { useSnackbarContext } from "../contexts/snackbarContext.tsx";
 import { DeleteConfirmationModal } from "../components/snippet-detail/DeleteConfirmationModal.tsx";
 import { useAuth0 } from '@auth0/auth0-react';
+import { mergeLines, useLiveOutput } from "../hooks/useLiveOutput.ts";
+import { useServices } from "../contexts/serviceContext.tsx";
+import { DownloadVariant } from "../types/runner.ts";
 
 
 type SnippetDetailProps = {
@@ -30,26 +33,45 @@ type SnippetDetailProps = {
   handleCloseModal: () => void;
 }
 
+/**
+ * US #13: se puede descargar la versión original (como la escribió el usuario, aunque después se haya
+ * formateado) y la formateada (con las reglas de formateo del dueño). Las dos las da el backend.
+ */
 const DownloadButton = ({snippet}: { snippet?: Snippet }) => {
+  const {apiService} = useServices();
+  const {createSnackbar} = useSnackbarContext();
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   if (!snippet) return null;
-  const file = new Blob([snippet.content], {type: 'text/plain'});
+
+  const download = async (variant: DownloadVariant) => {
+    setAnchor(null);
+    try {
+      const code = await apiService.downloadSnippet(snippet.id, variant);
+      const url = URL.createObjectURL(new Blob([code], {type: 'text/plain'}));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = variant === 'formatted' ? `${snippet.name}.formatted.ps` : `${snippet.name}.ps`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: unknown) {
+      createSnackbar('error', err instanceof Error ? err.message : 'Download failed');
+    }
+  };
 
   return (
-    <Tooltip title={"Download"}>
-      <IconButton sx={{
-        cursor: "pointer"
-      }}>
-        <a download={`${snippet.name}.ps`} target="_blank"
-           rel="noreferrer" href={URL.createObjectURL(file)} style={{
-          textDecoration: "none",
-          color: "inherit",
-          display: 'flex',
-          alignItems: 'center',
-        }}>
+    <>
+      <Tooltip title={"Download"}>
+        <IconButton sx={{cursor: "pointer"}} onClick={e => setAnchor(e.currentTarget)}>
           <Download/>
-        </a>
-      </IconButton>
-    </Tooltip>
+        </IconButton>
+      </Tooltip>
+      <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)}>
+        <MenuItem onClick={() => download('original')}>Original version</MenuItem>
+        <MenuItem onClick={() => download('formatted')}>Formatted version</MenuItem>
+      </Menu>
+    </>
   )
 }
 
@@ -94,7 +116,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   const {data: snippet, isLoading} = useGetSnippetById(id);
   const {data: testCases} = useGetTestCases(id);
   const {mutateAsync: formatSnippetAsync, isLoading: isFormatLoading} = useFormatSnippet();
-  const {mutateAsync: lintSnippetAsync, isLoading: isLintLoading} = useLintSnippet();
+  const {mutateAsync: lintSnippetAsync, isLoading: isLintLoading} = useLintSnippet(id);
   const {mutateAsync: updateSnippetContent, isLoading: isUpdateSnippetLoading} = useUpdateSnippetContent({
     onSuccess: (message: string) => {
       queryClient.invalidateQueries(['snippet', id]);
@@ -129,15 +151,20 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   const [executionInputs, setExecutionInputs] = useState<string[]>([]);
   const [executionVersion, setExecutionVersion] = useState<string>("1.1");
 
+  // Output en vivo (US #9 y #10): mientras corre el POST, las líneas impresas se muestran apenas aparecen
+  const withLiveOutput = useLiveOutput();
+  const showLiveLines = (lines: string[]) =>
+    setExecutionResult(prev => ({status: ExecutionEventType.OUTPUT, message: mergeLines(prev?.message ?? [], lines)}));
+
   const handleSendInput = async (input: string) => {
     const inputs = [...executionInputs, input];
     setExecutionInputs(inputs);
-    const res = await startExecution({
+    const res = await withLiveOutput(id, 'run', () => startExecution({
       snippetId: id,
       environment: {},
       version: executionVersion,
       inputs,
-    });
+    }), showLiveLines);
     setExecutionResult(res);
   };
 
@@ -248,12 +275,12 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
             setExecutionInputs([]);
             const detectedVersion = (code.includes("const ") || code.includes("if ") || code.includes("readInput") || code.includes("readEnv")) ? "1.1" : version;
             setExecutionVersion(detectedVersion);
-            const res = await startExecution({
+            const res = await withLiveOutput(id, 'run', () => startExecution({
                 snippetId: id,
                 environment: {}, // Default empty environment
                 version: detectedVersion,
                 inputs: [],
-            });
+            }), showLiveLines);
             setExecutionResult(res);
         } catch (err: unknown) {
             console.error("Execution error:", err);

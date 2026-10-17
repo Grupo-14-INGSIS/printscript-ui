@@ -211,10 +211,10 @@ export const useFormatSnippet = () => {
     );
 }
 
-export const useLintSnippet = () => {
+export const useLintSnippet = (snippetId?: string) => {
     const { apiService } = useServices();
     return useMutation<string, Error, string>(
-        (snippetContent: string) => apiService.lintSnippet(snippetContent)
+        (snippetContent: string) => apiService.lintSnippet(snippetContent, snippetId)
     );
 }
 

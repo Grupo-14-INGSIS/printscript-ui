@@ -37,6 +37,7 @@ import {
 import { queryClient } from "../../App.tsx";
 import { useSnackbarContext } from "../../contexts/snackbarContext.tsx";
 import { CreateTestCase, TestCaseResult } from "../../types/TestCase.ts";
+import { useLiveOutput } from "../../hooks/useLiveOutput.ts";
 
 export type SnippetTestManagerProps = {
     snippetId: string;
@@ -61,7 +62,7 @@ export const SnippetTestManager = ({
     const [formError, setFormError] = useState<string | null>(null);
 
     // Execution results state keyed by testId
-    const [results, setResults] = useState<Record<string, { result: TestCaseResult; loading?: boolean }>>({});
+    const [results, setResults] = useState<Record<string, { result: TestCaseResult; loading?: boolean; live?: string[] }>>({});
     const [runningAll, setRunningAll] = useState<boolean>(false);
 
     const { data: testCases, isLoading: isLoadingTests, isError: isTestsError, error: testsError, refetch: refetchTests } = useGetTestCases(snippetId);
@@ -157,14 +158,21 @@ export const SnippetTestManager = ({
         }
     };
 
+    // Output en vivo del test (US #9): se muestra línea por línea mientras se evalúa
+    const withLiveOutput = useLiveOutput();
+    const runWithLiveOutput = (testId: string) =>
+        withLiveOutput(snippetId, 'test', () => runTestCase({ snippetId, testId }), (lines) =>
+            setResults((prev) => prev[testId]?.loading ? ({ ...prev, [testId]: { ...prev[testId], live: lines } }) : prev),
+        );
+
     const handleRunSingleTest = async (testId: string) => {
         setResults((prev) => ({
             ...prev,
-            [testId]: { result: prev[testId]?.result || { actual: [], result: "SUCCESS", message: "" }, loading: true },
+            [testId]: { result: prev[testId]?.result || { actual: [], result: "SUCCESS", message: "" }, loading: true, live: [] },
         }));
 
         try {
-            const res = await runTestCase({ snippetId, testId });
+            const res = await runWithLiveOutput(testId);
             setResults((prev) => ({
                 ...prev,
                 [testId]: { result: res, loading: false },
@@ -198,11 +206,11 @@ export const SnippetTestManager = ({
         for (const tc of testCases) {
             setResults((prev) => ({
                 ...prev,
-                [tc.id]: { result: prev[tc.id]?.result || { actual: [], result: "SUCCESS", message: "" }, loading: true },
+                [tc.id]: { result: prev[tc.id]?.result || { actual: [], result: "SUCCESS", message: "" }, loading: true, live: [] },
             }));
 
             try {
-                const res = await runTestCase({ snippetId, testId: tc.id });
+                const res = await runWithLiveOutput(tc.id);
                 setResults((prev) => ({
                     ...prev,
                     [tc.id]: { result: res, loading: false },
@@ -383,6 +391,23 @@ export const SnippetTestManager = ({
                                                     )}
                                                 </Box>
                                             </Box>
+
+                                            {/* Output en vivo mientras el test corre (US #9) */}
+                                            {resultData?.loading && (
+                                                <Box mt={1.5} p={1.5} borderRadius={1} bgcolor="#eceff1">
+                                                    <Box display="flex" alignItems="center" gap={1} mb={0.5}>
+                                                        <Typography variant="caption" fontWeight="bold">
+                                                            OUTPUT (running...):
+                                                        </Typography>
+                                                        <CircularProgress size={12} />
+                                                    </Box>
+                                                    {(resultData.live ?? []).map((line, i) => (
+                                                        <Typography key={i} variant="body2" fontFamily="monospace" sx={{ wordBreak: "break-all" }}>
+                                                            {line}
+                                                        </Typography>
+                                                    ))}
+                                                </Box>
+                                            )}
 
                                             {/* Results Details Box */}
                                             {resultData && !resultData.loading && (
