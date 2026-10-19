@@ -42,6 +42,12 @@ export interface ExecutionStatus {
     message: string[];
 }
 
+/** run = ejecución interactiva, test = corrida de un test (cada una tiene su propio output en vivo). */
+export type ExecutionKind = 'run' | 'test';
+
+/** US #13: original = como lo escribió el usuario, formatted = con las reglas de formateo del dueño. */
+export type DownloadVariant = 'original' | 'formatted';
+
 export interface SharedUser {
     id: string;
     email: string;

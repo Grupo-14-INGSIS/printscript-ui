@@ -148,4 +148,9 @@ export class FakeSnippetOperations implements SnippetOperations {
     getExecutionStatus(snippetId: string, executionId: string): Promise<ExecutionStatus> {
         return Promise.resolve(this.fakeStore.getExecutionStatus(snippetId, executionId));
     }
+
+    downloadSnippet(snippetId: string): Promise<string> {
+        const s = this.fakeStore.snippets.find(s => s.id === snippetId);
+        return Promise.resolve(s ? s.content : '');
+    }
 }

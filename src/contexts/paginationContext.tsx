@@ -1,4 +1,4 @@
-import {createContext, ReactNode, useContext, useState} from 'react'
+import {createContext, ReactNode, useCallback, useContext, useState} from 'react'
 
 export type PaginationContextType = {
   page: number,
@@ -22,17 +22,21 @@ export const PaginationProvider = ({children}: { children: ReactNode }) => {
   const [pageSize, setPageSize] = useState<number>(defaultPagination.page_size ?? 10)
   const [count, setCount] = useState(defaultPagination.count ?? 10)
 
-  const handleGoToPage = (page: number) => {
+  // useCallback: Home usa estos handlers como dependencias de useEffect. Si se recrearan en cada
+  // render, el efecto que vuelve a la página 0 al cambiar un filtro se dispararía también al
+  // cambiar de página, y la flecha de "siguiente" rebotaría a la primera página.
+  const handleGoToPage = useCallback((page: number) => {
     setPage(page)
-  }
+  }, [])
 
-  const handleChangePageSize = (pageSize: number) => {
+  const handleChangePageSize = useCallback((pageSize: number) => {
     setPageSize(pageSize)
-  }
+    setPage(0)
+  }, [])
 
-  const handleChangeCount = (newCount: number) => {
+  const handleChangeCount = useCallback((newCount: number) => {
     setCount(newCount)
-  }
+  }, [])
 
   return (
       <PaginationContext.Provider value={{

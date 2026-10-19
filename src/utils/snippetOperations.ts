@@ -1,7 +1,7 @@
 import {Rule} from "../types/Rule.ts";
 import {FileType} from "../types/FileType.ts";
 import {CreateSnippet, PaginatedSnippets, Snippet, SnippetData, SnippetFilters} from "./snippet.ts";
-import { StartExecutionResponse, ExecutionStatus, SharedUser } from "../types/runner.ts";
+import { StartExecutionResponse, ExecutionStatus, SharedUser, ExecutionKind, DownloadVariant } from "../types/runner.ts";
 import { TestCase, CreateTestCase, TestCaseResult } from "../types/TestCase.ts";
 import { User } from "./users.ts";
 
@@ -33,7 +33,7 @@ export interface SnippetOperations {
 
     formatSnippet(snippet: string): Promise<string>
 
-    lintSnippet(snippet: string): Promise<string>
+    lintSnippet(snippet: string, snippetId?: string): Promise<string>
 
     deleteSnippet(id: string): Promise<string>
 
@@ -51,6 +51,8 @@ export interface SnippetOperations {
     startExecution(snippetId: string, environment: Record<string, string>, version: string, inputs?: string[]): Promise<StartExecutionResponse>
     sendInput(snippetId: string, input: string): Promise<void>
     cancelExecution(snippetId: string, userId: string): Promise<void>
-    getExecutionStatus(snippetId: string, executionId: string): Promise<ExecutionStatus>
+    getExecutionStatus(snippetId: string, executionId: string, kind?: ExecutionKind): Promise<ExecutionStatus>
+
+    downloadSnippet(snippetId: string, variant: DownloadVariant): Promise<string>
 
 }
