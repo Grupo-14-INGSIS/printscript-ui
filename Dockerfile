@@ -35,7 +35,7 @@ ENV VITE_RUNNER_URL=$VITE_RUNNER_URL
 RUN npm run build
 
 # Production stage
-FROM nginx:alpine
+FROM nginx:stable-alpine
 
 # Copy built assets from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
