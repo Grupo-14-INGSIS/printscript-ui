@@ -113,20 +113,15 @@ export const useGetFileTypes = () => {
 }
 
 export const useCreateSnippet = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<void, Error, CreateSnippet> => {
-    const { apiService, runnerService } = useServices();
+    const { apiService } = useServices();
     const { user } = useAuth0();
 
     return useMutation<void, Error, CreateSnippet>(
         async (snippet: CreateSnippet) => {
             if (!user?.sub) throw new Error("User not authenticated");
-            // El Runner valida el código (parser), guarda el contenido en el asset-service y
-            // registra el snippet en App (metadatos + permiso de owner) en una sola operación.
+            // Todo pasa por App: toma al dueño del token y, si hay código, el Runner lo valida y lo guarda.
             // Si el código es inválido devuelve 400 con la regla/línea/columna del error.
-            if (snippet.content) {
-                await runnerService.createSnippet(snippet, user.sub);
-            } else {
-                await apiService.createSnippet(snippet, user.sub);
-            }
+            await apiService.createSnippet(snippet);
         },
         {onSuccess}
     );
@@ -219,26 +214,17 @@ export const useLintSnippet = (snippetId?: string) => {
 }
 
 export const useGetSnippetById = (id: string | null) => {
-    const { apiService, runnerService } = useServices();
+    const { apiService } = useServices();
 
     return useQuery<Snippet, Error>(
         ['snippet', id],
         async () => {
             if (!id) throw new Error("No snippet ID provided");
 
-            // App (BFF) devuelve metadatos + contenido. Si por algún motivo no trae el
-            // contenido, lo pedimos directo al Runner; si tampoco existe, se abre vacío
-            // para que el usuario pueda cargarlo y guardarlo.
+            // App (BFF) devuelve metadatos + contenido, después de chequear que el usuario tenga acceso.
+            // Si el contenido todavía no existe, se abre vacío para que el usuario pueda cargarlo y guardarlo.
             const metadata = await apiService.getSnippetData(id);
-            let content = metadata.content ?? null;
-            if (content === null || content === undefined) {
-                try {
-                    content = await runnerService.getSnippetContent(id);
-                } catch (err) {
-                    console.warn("Snippet content not available yet:", err);
-                    content = '';
-                }
-            }
+            const content = metadata.content ?? '';
 
             // Combine the results
             return {
@@ -276,9 +262,9 @@ export const useUpdateSnippetContent = ({onSuccess}: {onSuccess: (message: strin
     content: string;
     version?: string;
 }> => {
-    const { runnerService } = useServices();
+    const { apiService } = useServices();
     return useMutation<string, Error, { id: string; content: string; version?: string }>(
-        ({id, content, version}: { id: string; content: string; version?: string }) => runnerService.updateSnippetContent(id, content, version),{
+        ({id, content, version}: { id: string; content: string; version?: string }) => apiService.updateSnippetContent(id, content, version),{
             onSuccess,
         }
     );

@@ -18,7 +18,9 @@ export interface SnippetOperations {
 
     registerUser(email: string): Promise<void>
 
-    createSnippet(createSnippet: CreateSnippet, userId?: string): Promise<void>
+    createSnippet(createSnippet: CreateSnippet): Promise<void>
+
+    updateSnippetContent(id: string, content: string, version?: string): Promise<string>
 
     // --- Test Cases ---
     getTestCases(snippetId: string): Promise<TestCase[]>

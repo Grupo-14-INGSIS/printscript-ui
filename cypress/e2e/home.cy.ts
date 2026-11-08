@@ -1,4 +1,4 @@
-import {AUTH0_PASSWORD, AUTH0_USERNAME, FRONTEND_URL, RUNNER_URL} from "../../src/utils/constants";
+import {AUTH0_PASSWORD, AUTH0_USERNAME, BACKEND_URL, FRONTEND_URL} from "../../src/utils/constants";
 import {CreateSnippet} from "../../src/utils/snippet";
 import {v4 as uuidv4} from "uuid";
 
@@ -56,19 +56,16 @@ describe('Home', () => {
         }).as('searchSnippets');
 
         // Se crea el snippet por API, con el token real de la sesión (igual que la UI)
+        // App toma al dueño del token: no hace falta mandar el userId
         cy.getAccessToken().then((token) => {
-            const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-            const userId = JSON.parse(atob(payload)).sub as string;
-
             cy.request({
                 method: 'PUT',
-                url: `${RUNNER_URL}/api/v1/snippets/${snippetData.id}`,
+                url: `${BACKEND_URL}/api/v1/snippets/${snippetData.id}`,
                 headers: {Authorization: `Bearer ${token}`},
                 body: {
-                    userId: userId,
                     name: snippetData.name,
                     language: snippetData.language,
-                    snippet: snippetData.content,
+                    content: snippetData.content,
                 },
                 failOnStatusCode: false
             }).then((response) => {

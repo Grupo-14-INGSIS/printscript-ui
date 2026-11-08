@@ -43,6 +43,12 @@ export class FakeSnippetOperations implements SnippetOperations {
         return Promise.resolve();
     }
 
+    updateSnippetContent(id: string, content: string): Promise<string> {
+        const snippet = this.fakeStore.snippets.find(s => s.id === id);
+        if (snippet) snippet.content = content;
+        return Promise.resolve('Snippet updated successfully.');
+    }
+
     deleteSnippet(id: string): Promise<string> {
         this.fakeStore.deleteSnippet(id);
         return Promise.resolve(id);
