@@ -1,4 +1,4 @@
-import {AUTH0_PASSWORD, AUTH0_USERNAME, RUNNER_URL} from "../../src/utils/constants";
+import {AUTH0_PASSWORD, AUTH0_USERNAME, BACKEND_URL} from "../../src/utils/constants";
 
 describe('Add snippet tests', () => {
     beforeEach(() => {
@@ -8,9 +8,9 @@ describe('Add snippet tests', () => {
         )
     })
 
-    // Crear un snippet es un PUT al Runner (valida el código, guarda el contenido y lo
-    // registra en App). La request va al backend real; acá solo se verifica la respuesta.
-    const createSnippetUrl = RUNNER_URL + "/api/v1/snippets/*";
+    // Crear un snippet es un PUT a App, que le pide al Runner validar el código y guardarlo.
+    // La request va al backend real; acá solo se verifica la respuesta.
+    const createSnippetUrl = BACKEND_URL + "/api/v1/snippets/*";
 
     it('Can add snippets manually', () => {
         const snippetName = `Some snippet name ${Date.now()}`;

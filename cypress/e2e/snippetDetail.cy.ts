@@ -1,4 +1,4 @@
-import {AUTH0_PASSWORD, AUTH0_USERNAME, RUNNER_URL} from "../../src/utils/constants";
+import {AUTH0_PASSWORD, AUTH0_USERNAME, BACKEND_URL} from "../../src/utils/constants";
 
 describe('Snippet detail tests', () => {
     // Snippet real, creado una vez para esta suite; el último test lo borra.
@@ -116,8 +116,8 @@ describe('Snippet detail tests', () => {
     });
 
     it('Can save snippets', function() {
-        cy.intercept('PATCH', RUNNER_URL + '/api/v1/snippets/*', (req) => {
-            expect(req.body.snippet).to.include('println("saved");');
+        cy.intercept('PATCH', BACKEND_URL + '/api/v1/snippets/*', (req) => {
+            expect(req.body.content).to.include('println("saved");');
             req.continue((res) => {
                 expect(res.statusCode).to.eq(200);
             });

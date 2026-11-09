@@ -205,14 +205,25 @@ export class ApiSnippetOperations implements SnippetOperations {
         };
     }
     
-    createSnippet(createSnippet: CreateSnippet, userId?: string): Promise<void> {
+    // App toma al dueño del token. Con contenido, App le pide al Runner que valide el código y lo guarde
+    // (si no parsea, responde 400 con la regla, la línea y la columna). Runner no se llama directo.
+    createSnippet(createSnippet: CreateSnippet): Promise<void> {
         return this.request<void>(`/api/v1/snippets/${createSnippet.id}`, {
             method: 'PUT',
             body: JSON.stringify({
-                userId: userId ?? '',
                 name: createSnippet.name,
                 language: createSnippet.language,
+                content: createSnippet.content || undefined,
             }),
+        });
+    }
+
+    // Solo el dueño. App le pasa el contenido al Runner, que lo valida, lo guarda, pide el linteo y corre
+    // los tests. Devuelve el mensaje con el resultado de los tests.
+    updateSnippetContent(id: string, content: string, version?: string): Promise<string> {
+        return this.request<string>(`/api/v1/snippets/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ content, ...(version ? { version } : {}) }),
         });
     }
 
