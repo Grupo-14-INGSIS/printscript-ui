@@ -231,7 +231,6 @@ export class FakeSnippetStore {
     getFileTypes(): FileType[] { return [{ language: "printscript", extension: "ps", version: "1.1" }]; }
     modifyFormatRule(_newRules: Rule[]): void {} // Prefixed
     modifyLintingRule(_newRules: Rule[]): void {} // Prefixed
-    removeTestCase(id: string): string { return id; }
     formatSnippet(snippet: string): string { return snippet; }
     shareSnippet(_snippetId: string, _userId: string): Snippet { return this.snippets[0]; } // Prefixed
     updateSnippetContent(_id: string, _content: string): void {}
@@ -244,7 +243,6 @@ export class FakeSnippetStore {
     ): StartExecutionResponse { // Prefixed
         return { status: ExecutionEventType.STARTED, message: ["Mock execution started"] };
     }
-    sendInput(_snippetId: string, _input: string): void {} // Prefixed
     cancelExecution(_snippetId: string, _userId: string): void {} // Prefixed
     getExecutionStatus(_snippetId: string, _executionId: string): ExecutionStatus { // Prefixed
         return { status: ExecutionEventType.COMPLETED, message: ["Mock execution completed"] };

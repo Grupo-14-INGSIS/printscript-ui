@@ -28,9 +28,6 @@ const frontendUrl = baseUrl;
 const backendUrl = isLocal
     ? "http://localhost:19081"
     : (isProdBranch ? "https://snippet26prod.duckdns.org" : "https://snippet26dev.duckdns.org");
-const runnerUrl = isLocal
-    ? "http://localhost:19082"
-    : (isProdBranch ? "https://snippet26prod.duckdns.org/runner" : "https://snippet26dev.duckdns.org/runner");
 const apiUrl = backendUrl;
 
 export default defineConfig({
@@ -40,7 +37,6 @@ export default defineConfig({
                 ...config.env,
                 VITE_FRONTEND_URL: frontendUrl,
                 VITE_BACKEND_URL: backendUrl,
-                VITE_RUNNER_URL: runnerUrl,
                 VITE_AUTH0_USERNAME: process.env.VITE_AUTH0_USERNAME,
                 VITE_AUTH0_PASSWORD: process.env.VITE_AUTH0_PASSWORD,
                 VITE_AUTH0_DOMAIN: process.env.VITE_AUTH0_DOMAIN,

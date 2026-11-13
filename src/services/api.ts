@@ -331,17 +331,6 @@ export class ApiSnippetOperations implements SnippetOperations {
         });
     }
 
-    async removeTestCase(snippetIdOrTestId: string, testId?: string): Promise<string> {
-        if (testId) {
-            await this.deleteTestCase(snippetIdOrTestId, testId);
-            return testId;
-        }
-        await this.request<void>(`/api/v1/tests/${snippetIdOrTestId}`, {
-            method: 'DELETE',
-        });
-        return snippetIdOrTestId;
-    }
-
     deleteTestCase(snippetId: string, testId: string): Promise<void> {
         return this.request<void>(`/api/v1/snippets/${snippetId}/tests/${testId}`, {
             method: 'DELETE',
@@ -441,13 +430,6 @@ export class ApiSnippetOperations implements SnippetOperations {
         return this.request<StartExecutionResponse>(`/api/v1/snippets/${snippetId}/executions`, {
             method: 'POST',
             body: JSON.stringify({ environment, version, inputs }),
-        });
-    }
-
-    sendInput(snippetId: string, input: string): Promise<void> {
-        return this.request<void>(`/api/v1/snippets/${snippetId}/executions/input`, {
-            method: 'POST',
-            body: JSON.stringify({ input }),
         });
     }
 

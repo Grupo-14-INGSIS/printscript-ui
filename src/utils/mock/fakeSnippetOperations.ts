@@ -98,14 +98,6 @@ export class FakeSnippetOperations implements SnippetOperations {
         return Promise.resolve({ testId });
     }
 
-    removeTestCase(snippetIdOrTestId: string, testId?: string): Promise<string> {
-        if (testId) {
-            this.fakeStore.deleteTest(snippetIdOrTestId, testId);
-            return Promise.resolve(testId);
-        }
-        return Promise.resolve(snippetIdOrTestId);
-    }
-
     deleteTestCase(snippetId: string, testId: string): Promise<void> {
         this.fakeStore.deleteTest(snippetId, testId);
         return Promise.resolve();
@@ -139,11 +131,6 @@ export class FakeSnippetOperations implements SnippetOperations {
     // --- Test & Execution ---
     startExecution(snippetId: string, environment: Record<string, string>, version: string, _inputs?: string[]): Promise<StartExecutionResponse> {
         return Promise.resolve(this.fakeStore.startExecution(snippetId, environment, version));
-    }
-
-    sendInput(snippetId: string, input: string): Promise<void> {
-        this.fakeStore.sendInput(snippetId, input);
-        return Promise.resolve();
     }
 
     cancelExecution(snippetId: string, userId: string): Promise<void> {

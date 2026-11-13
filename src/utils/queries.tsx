@@ -4,7 +4,7 @@ import {FileType} from "../types/FileType.ts";
 import {CreateSnippet, PaginatedSnippets, Snippet, SnippetFilters} from "./snippet.ts";
 import { useServices } from '../contexts/serviceContext.tsx';
 import { useAuth0 } from '@auth0/auth0-react';
-import { StartExecutionResponse, ExecutionStatus, SharedUser } from '../types/runner.ts';
+import { StartExecutionResponse, SharedUser } from '../types/runner.ts';
 import { TestCase, CreateTestCase, TestCaseResult } from '../types/TestCase.ts';
 import { queryClient } from '../App.tsx';
 import { User } from './users.ts';
@@ -63,17 +63,6 @@ export const useStartExecution = ({onSuccess}: {onSuccess: (data: StartExecution
 };
 
 
-export const useSendInput = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<void, Error, {
-    snippetId: string;
-    input: string;
-}> => {
-    const { apiService } = useServices();
-    return useMutation<void, Error, { snippetId: string; input: string }>(
-        ({snippetId, input}: { snippetId: string; input: string }) => apiService.sendInput(snippetId, input),
-        {onSuccess}
-    );
-};
-
 export const useCancelExecution = ({onSuccess}: {onSuccess: () => void}): UseMutationResult<void, Error, {snippetId: string, userId: string}> => {
     const { apiService } = useServices();
     const { user } = useAuth0();
@@ -90,15 +79,6 @@ export const useCancelExecution = ({onSuccess}: {onSuccess: () => void}): UseMut
  * Estado de la ejecución. Solo se consulta/pollea mientras la ejecución está viva
  * (esperando input u output en curso); cuando termina se deja de pollear.
  */
-export const useGetExecutionStatus = (snippetId: string, executionId: string, shouldPoll: boolean) => {
-    const { apiService } = useServices();
-    return useQuery<ExecutionStatus, Error>(['executionStatus', snippetId, executionId], () => apiService.getExecutionStatus(snippetId, executionId), {
-        enabled: !!executionId && !!snippetId && shouldPoll,
-        refetchInterval: shouldPoll ? 1000 : false,
-        refetchOnWindowFocus: false,
-    });
-};
-
 export const useGetUsers = (name?: string) => {
     const { apiService } = useServices();
     return useQuery<User[], Error>(['users', name ?? ''], () => apiService.getUsers(name), {
@@ -146,17 +126,6 @@ export const useCreateTestCase = ({onSuccess}: {onSuccess?: (data: { testId: str
                     onSuccess(data);
                 }
             },
-        }
-    );
-};
-
-export const useRemoveTestCase = ({onSuccess}: {onSuccess?: () => void} = {}) => {
-    const { apiService } = useServices();
-    return useMutation<string, Error, string>(
-        ['removeTestCase'],
-        (id: string) => apiService.removeTestCase(id),
-        {
-            onSuccess,
         }
     );
 };

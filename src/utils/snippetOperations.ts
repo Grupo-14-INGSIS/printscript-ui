@@ -27,8 +27,6 @@ export interface SnippetOperations {
 
     createTestCase(snippetId: string, testCase: CreateTestCase): Promise<{ testId: string }>
 
-    removeTestCase(snippetIdOrTestId: string, testId?: string): Promise<string>
-
     deleteTestCase(snippetId: string, testId: string): Promise<void>
 
     runTestCase(snippetId: string, testId: string): Promise<TestCaseResult>
@@ -51,7 +49,6 @@ export interface SnippetOperations {
 
     // --- Execution Methods ---
     startExecution(snippetId: string, environment: Record<string, string>, version: string, inputs?: string[]): Promise<StartExecutionResponse>
-    sendInput(snippetId: string, input: string): Promise<void>
     cancelExecution(snippetId: string, userId: string): Promise<void>
     getExecutionStatus(snippetId: string, executionId: string, kind?: ExecutionKind): Promise<ExecutionStatus>
 
