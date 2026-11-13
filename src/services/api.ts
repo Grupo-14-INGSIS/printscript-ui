@@ -1,7 +1,7 @@
 import { Rule } from "../types/Rule.ts";
 import { BACKEND_URL } from "../utils/constants.ts";
 import { SnippetOperations } from "../utils/snippetOperations.ts";
-import { ComplianceEnum, CreateSnippet, PaginatedSnippets, Snippet, SnippetData, SnippetFilters, UpdateSnippet } from "../utils/snippet.ts";
+import { ComplianceEnum, CreateSnippet, PaginatedSnippets, Snippet, SnippetData, SnippetFilters, SnippetMetadataUpdate, UpdateSnippet } from "../utils/snippet.ts";
 import { FileType } from "../types/FileType.ts";
 import { GetTokenSilentlyOptions } from "@auth0/auth0-react";
 import { StartExecutionResponse, ExecutionStatus, CancelExecutionRequest, SharedUser, ExecutionKind, DownloadVariant } from '../types/runner.ts';
@@ -214,7 +214,17 @@ export class ApiSnippetOperations implements SnippetOperations {
                 name: createSnippet.name,
                 language: createSnippet.language,
                 content: createSnippet.content || undefined,
+                description: createSnippet.description || undefined,
+                version: createSnippet.version || undefined,
             }),
+        });
+    }
+
+    // US #2: el dueño edita nombre, descripción, lenguaje o versión. Cambiar lenguaje o versión re-lintea.
+    async updateSnippetMetadata(id: string, metadata: SnippetMetadataUpdate): Promise<void> {
+        await this.request<unknown>(`/api/v1/snippets/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(metadata),
         });
     }
 
@@ -384,7 +394,17 @@ export class ApiSnippetOperations implements SnippetOperations {
             message: 'Test executed successfully',
         };
     }
-    async formatSnippet(snippet: string): Promise<string> {
+    async formatSnippet(snippet: string, snippetId?: string): Promise<string> {
+        if (snippetId) {
+            // El formatter real de PrintScript (en el Runner) con las reglas del dueño, sobre el código del
+            // editor. Es una vista previa: no guarda nada; se guarda con "Save changes".
+            const result = await this.request<unknown>(`/api/v1/snippets/${snippetId}/tasks/format`, {
+                method: 'POST',
+                body: JSON.stringify({ content: snippet }),
+            });
+            return typeof result === 'string' ? result : snippet;
+        }
+        // Sin snippet guardado no hay backend al que preguntarle: formateador local (aproximado)
         try {
             const rules = await this.getFormatRules("printscript");
             return formatPrintScriptCode(snippet, rules);

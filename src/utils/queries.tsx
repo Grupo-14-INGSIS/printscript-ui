@@ -1,7 +1,7 @@
 import {useMutation, UseMutationResult, useQuery} from 'react-query';
 import {Rule} from "../types/Rule.ts";
 import {FileType} from "../types/FileType.ts";
-import {CreateSnippet, PaginatedSnippets, Snippet, SnippetFilters} from "./snippet.ts";
+import {CreateSnippet, PaginatedSnippets, Snippet, SnippetFilters, SnippetMetadataUpdate} from "./snippet.ts";
 import { useServices } from '../contexts/serviceContext.tsx';
 import { useAuth0 } from '@auth0/auth0-react';
 import { StartExecutionResponse, SharedUser } from '../types/runner.ts';
@@ -168,10 +168,18 @@ export const useDeleteSnippet = ({onSuccess}: {onSuccess: () => void}) => {
     );
 }
 
-export const useFormatSnippet = () => {
+export const useFormatSnippet = (snippetId?: string) => {
     const { apiService } = useServices();
     return useMutation<string, Error, string>(
-        (snippetContent: string) => apiService.formatSnippet(snippetContent)
+        (snippetContent: string) => apiService.formatSnippet(snippetContent, snippetId)
+    );
+}
+
+export const useUpdateSnippetMetadata = ({onSuccess}: {onSuccess: () => void}) => {
+    const { apiService } = useServices();
+    return useMutation<void, Error, { id: string; metadata: SnippetMetadataUpdate }>(
+        ({id, metadata}) => apiService.updateSnippetMetadata(id, metadata),
+        { onSuccess }
     );
 }
 
@@ -204,6 +212,8 @@ export const useGetSnippetById = (id: string | null) => {
                 extension: 'ps', // Hardcode to .ps as requested
                 compliance: metadata.compliance || 'pending',
                 author: metadata.author || '',
+                description: metadata.description ?? '',
+                version: metadata.version,
             };
         },
         {

@@ -11,8 +11,9 @@ import {
 } from "../utils/queries.tsx";
 import {useFormatSnippet, useGetSnippetById} from "../utils/queries.tsx";
 import {Bòx} from "../components/snippet-table/SnippetBox.tsx";
-import {BugReport, Delete, Download, Save, Share, PlayArrow, StopRounded, UploadFile, Terminal, FactCheck} from "@mui/icons-material";
+import {BugReport, Delete, Download, Edit, Save, Share, PlayArrow, StopRounded, UploadFile, Terminal, FactCheck} from "@mui/icons-material";
 import {ShareSnippetModal} from "../components/snippet-detail/ShareSnippetModal.tsx";
+import {EditSnippetModal} from "../components/snippet-detail/EditSnippetModal.tsx";
 import {TestSnippetModal} from "../components/snippet-test/TestSnippetModal.tsx";
 import {SnippetTestManager} from "../components/snippet-test/SnippetTestManager.tsx";
 import {Snippet} from "../utils/snippet.ts";
@@ -85,6 +86,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   const [version, setVersion] = useState<string>("1.0");
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [shareModalOppened, setShareModalOppened] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
   const [deleteConfirmationModalOpen, setDeleteConfirmationModalOpen] = useState(false)
   const [testModalOpened, setTestModalOpened] = useState(false);
   const [bottomTab, setBottomTab] = useState<number>(0);
@@ -115,7 +117,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
 
   const {data: snippet, isLoading} = useGetSnippetById(id);
   const {data: testCases} = useGetTestCases(id);
-  const {mutateAsync: formatSnippetAsync, isLoading: isFormatLoading} = useFormatSnippet();
+  const {mutateAsync: formatSnippetAsync, isLoading: isFormatLoading} = useFormatSnippet(id);
   const {mutateAsync: lintSnippetAsync, isLoading: isLintLoading} = useLintSnippet(id);
   const {mutateAsync: updateSnippetContent, isLoading: isUpdateSnippetLoading} = useUpdateSnippetContent({
     onSuccess: (message: string) => {
@@ -172,8 +174,10 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
     if (snippet) {
       setCode(snippet.content);
       setUpdateError(null);
-      // Auto-detect 1.1 if code contains 1.1 syntax
-      if (snippet.content.includes("const ") || snippet.content.includes("if ") || snippet.content.includes("readInput") || snippet.content.includes("readEnv")) {
+      // La versión guardada del snippet (US #1/#3). Si no hay, se detecta por la sintaxis de 1.1
+      if (snippet.version) {
+        setVersion(snippet.version);
+      } else if (snippet.content.includes("const ") || snippet.content.includes("if ") || snippet.content.includes("readInput") || snippet.content.includes("readEnv")) {
         setVersion("1.1");
       }
     }
@@ -311,8 +315,18 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                   sx={{ fontWeight: 600 }}
                 />
               )}
+              {snippet?.language && <Chip label={snippet.language} size="small" />}
+              {snippet?.version && <Chip label={`v${snippet.version}`} size="small" />}
             </Box>
+            <Typography variant="body1" color="text.secondary" mb={1} sx={{ whiteSpace: 'pre-wrap' }}>
+              {snippet?.description ? snippet.description : "No description"}
+            </Typography>
             <Box display="flex" flexDirection="row" gap="8px" padding="8px" alignItems="center" flexWrap="wrap">
+              <Tooltip title={"Edit name, description and language"}>
+                <IconButton onClick={() => setEditModalOpen(true)} disabled={!snippet}>
+                  <Edit/>
+                </IconButton>
+              </Tooltip>
               <Tooltip title={"Share"}>
                 <IconButton onClick={() => setShareModalOppened(true)}>
                   <Share/>
@@ -467,6 +481,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
             </Box>
           </>
         }
+        <EditSnippetModal open={editModalOpen} onClose={() => setEditModalOpen(false)} snippet={snippet}/>
         <ShareSnippetModal open={shareModalOppened}
                            onClose={() => setShareModalOppened(false)}
                            snippetId={id}/>

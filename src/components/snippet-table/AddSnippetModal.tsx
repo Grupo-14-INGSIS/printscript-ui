@@ -34,6 +34,8 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
     const [language, setLanguage] = useState(defaultSnippet?.language ?? "printscript");
     const [code, setCode] = useState(defaultSnippet?.content ?? "");
     const [snippetName, setSnippetName] = useState(defaultSnippet?.name ?? "");
+    const [description, setDescription] = useState(defaultSnippet?.description ?? "");
+    const [version, setVersion] = useState(defaultSnippet?.version ?? "1.1");
     const [validationError, setValidationError] = useState<string | null>(null);
     const {createSnackbar} = useSnackbarContext();
     const {mutateAsync: createSnippet, isLoading: loadingSnippet} = useCreateSnippet({
@@ -54,7 +56,9 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
                 name: snippetName,
                 content: code,
                 language: language,
-                extension: fileTypes?.find((f: FileType) => f.language === language)?.extension ?? "ps"
+                extension: fileTypes?.find((f: FileType) => f.language === language)?.extension ?? "ps",
+                description: description.trim(),
+                version: version,
             }
             await createSnippet(newSnippet);
         } catch (err: unknown) {
@@ -70,6 +74,8 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
             setCode(defaultSnippet?.content);
             setSnippetName(defaultSnippet?.name);
             setLanguage(defaultSnippet?.language ?? "printscript");
+            setDescription(defaultSnippet?.description ?? "");
+            setVersion(defaultSnippet?.version ?? "1.1");
             setValidationError(null);
         }
     }, [defaultSnippet]);
@@ -121,6 +127,21 @@ export const AddSnippetModal = ({open, onClose, defaultSnippet}: {
                         ))}
                     </Select>
                 </FormControl>
+                <FormControl variant="standard" sx={{width: '50%'}}>
+                    <InputLabel id="version-select-label">Version</InputLabel>
+                    <Select
+                        labelId="version-select-label"
+                        id="add-snippet-version"
+                        value={version}
+                        onChange={e => setVersion(e.target.value)}
+                    >
+                        <MenuItem value="1.0">1.0</MenuItem>
+                        <MenuItem value="1.1">1.1</MenuItem>
+                    </Select>
+                </FormControl>
+                <InputLabel htmlFor="description">Description</InputLabel>
+                <Input onChange={e => setDescription(e.target.value)} value={description} id="description"
+                       multiline sx={{width: '100%'}}/>
             </Box>
             {validationError && (
                 <Alert severity="error" sx={{ whiteSpace: 'pre-wrap', my: 1 }}>

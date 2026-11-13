@@ -1,5 +1,5 @@
 import { SnippetOperations } from "../snippetOperations.ts";
-import { CreateSnippet, PaginatedSnippets, Snippet, SnippetData, SnippetFilters, UpdateSnippet } from "../snippet.ts";
+import { CreateSnippet, PaginatedSnippets, Snippet, SnippetData, SnippetFilters, SnippetMetadataUpdate, UpdateSnippet } from "../snippet.ts";
 import { FileType } from "../../types/FileType.ts"; // Corrected path
 import { StartExecutionResponse, ExecutionStatus, SharedUser } from "../../types/runner.ts"; // Corrected path
 import { Rule } from "../../types/Rule.ts"; // Corrected path
@@ -47,6 +47,12 @@ export class FakeSnippetOperations implements SnippetOperations {
         const snippet = this.fakeStore.snippets.find(s => s.id === id);
         if (snippet) snippet.content = content;
         return Promise.resolve('Snippet updated successfully.');
+    }
+
+    updateSnippetMetadata(id: string, metadata: SnippetMetadataUpdate): Promise<void> {
+        const snippet = this.fakeStore.snippets.find(s => s.id === id);
+        if (snippet) Object.assign(snippet, metadata);
+        return Promise.resolve();
     }
 
     deleteSnippet(id: string): Promise<string> {
@@ -117,7 +123,10 @@ export class FakeSnippetOperations implements SnippetOperations {
 
     getSnippetData(id: string): Promise<SnippetData> {
         const snippet = this.fakeStore.getSnippetData(id);
-        return Promise.resolve({ snippetId: snippet.id, name: snippet.name, language: snippet.language });
+        return Promise.resolve({
+            snippetId: snippet.id, name: snippet.name, language: snippet.language,
+            description: snippet.description, version: snippet.version, content: snippet.content,
+        });
     }
 
     updateSnippetById(id: string, updateSnippet: UpdateSnippet): Promise<Snippet> {
