@@ -10,10 +10,6 @@ export const BACKEND_URL = isCypress
     ? Cypress.env('VITE_BACKEND_URL') as string
     : (isLocalhost ? (import.meta.env.VITE_BACKEND_URL as string || "http://localhost:19081") : (isBrowser ? window.location.origin : (import.meta.env.VITE_BACKEND_URL as string || "http://localhost:19081")));
 
-export const RUNNER_URL = isCypress
-    ? Cypress.env('VITE_RUNNER_URL') as string
-    : (isLocalhost ? (import.meta.env.VITE_RUNNER_URL as string || "http://localhost:19082") : (isBrowser ? `${window.location.origin}/runner` : (import.meta.env.VITE_RUNNER_URL as string || "http://localhost:19082")));
-
 export const AUTH0_USERNAME = isCypress
     ? Cypress.env('VITE_AUTH0_USERNAME') as string
     : (import.meta.env.VITE_AUTH0_USERNAME as string ?? "") as string;

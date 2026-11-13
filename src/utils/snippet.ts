@@ -14,12 +14,22 @@ export type CreateSnippet = {
   content: string;
   language: string;
   extension: string;
+  description?: string;
+  version?: string;
 }
 
 export type CreateSnippetWithLang = CreateSnippet & { language: string }
 
 export type UpdateSnippet = {
   content: string
+}
+
+// US #2: datos del snippet que edita el dueño (cada campo es opcional: se manda solo lo que cambia)
+export type SnippetMetadataUpdate = {
+  name?: string;
+  description?: string;
+  language?: string;
+  version?: string;
 }
 
 export type SnippetData = {
