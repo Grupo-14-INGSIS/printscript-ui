@@ -9,6 +9,8 @@ import { TestCase, CreateTestCase, TestCaseResult } from '../types/TestCase.ts';
 import { queryClient } from '../App.tsx';
 import { User } from './users.ts';
 
+const PENDING_REFRESH_MS = 2000;
+
 export const useGetFormatRules = () => {
   const { apiService } = useServices();
   return useQuery<Rule[], Error>('formatRules', () => apiService.getFormatRules());
@@ -211,13 +213,15 @@ export const useGetSnippetById = (id: string | null) => {
                 content: content ?? '',
                 extension: 'ps', // Hardcode to .ps as requested
                 compliance: metadata.compliance || 'pending',
-                author: metadata.author || '',
+                // "owner" o "shared", igual que en la lista: el detalle es de solo lectura para un compartido
+                author: metadata.permission || metadata.author || '',
                 description: metadata.description ?? '',
                 version: metadata.version,
             };
         },
         {
             enabled: !!id,
+            refetchInterval: (data) => data?.compliance === 'pending' ? PENDING_REFRESH_MS : false,
         }
     );
 };
@@ -251,5 +255,8 @@ export const useUpdateSnippetContent = ({onSuccess}: {onSuccess: (message: strin
 
 export const useGetSnippets = (page: number = 0, pageSize: number = 10, filters?: SnippetFilters) => {
     const { apiService } = useServices();
-    return useQuery<PaginatedSnippets, Error>(['listSnippets', page, pageSize, filters], () => apiService.listSnippetDescriptors(page, pageSize, filters));
+    // Mientras algún snippet está "pending" (linteo o formateo en segundo plano), la lista se actualiza sola
+    return useQuery<PaginatedSnippets, Error>(['listSnippets', page, pageSize, filters], () => apiService.listSnippetDescriptors(page, pageSize, filters), {
+        refetchInterval: (data) => data?.snippets.some(s => s.compliance === 'pending') ? PENDING_REFRESH_MS : false,
+    });
 };
