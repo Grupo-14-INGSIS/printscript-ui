@@ -7,7 +7,7 @@ import "prismjs/themes/prism-okaidia.css";
 import {Alert, Box, CircularProgress, IconButton, Tooltip, Typography, Select, Menu, MenuItem, FormControl, InputLabel, Tab, Tabs, Switch, FormControlLabel, Chip} from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import {
-  useUpdateSnippetContent, useStartExecution, useCancelExecution, useGetTestCases, useLintSnippet
+  useUpdateSnippetContent, useUpdateSnippetMetadata, useStartExecution, useCancelExecution, useGetTestCases, useLintSnippet
 } from "../utils/queries.tsx";
 import {useFormatSnippet, useGetSnippetById} from "../utils/queries.tsx";
 import {Bòx} from "../components/snippet-table/SnippetBox.tsx";
@@ -132,6 +132,20 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
       setUpdateError(null);
     }
   });
+  // Cambiar solo la versión (sin tocar el código) se guarda con el PATCH de datos: App re-lintea
+  const {mutateAsync: updateSnippetMetadata, isLoading: isUpdateMetadataLoading} = useUpdateSnippetMetadata({
+    onSuccess: () => {
+      queryClient.invalidateQueries(['snippet', id]);
+      queryClient.invalidateQueries('listSnippets');
+      createSnackbar('success', 'Snippet updated successfully');
+      setUpdateError(null);
+    }
+  });
+  // Compartido = solo lectura: puede ejecutar, lintear, ver el formateo, testear y descargar, pero no guardar
+  // nada. Si el backend no manda el permiso (versión anterior), se asume dueño y decide el 403 de App.
+  const isOwner = snippet?.author !== 'shared';
+  const codeChanged = !!snippet && snippet.content !== code;
+  const versionChanged = !!snippet && version !== (snippet.version ?? "1.1");
   const {mutateAsync: startExecution, isLoading: isStartingExecution} = useStartExecution({
     onSuccess: (data) => {
         setExecutionResult(data);
@@ -170,17 +184,22 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
     setExecutionResult(res);
   };
 
+  // Último código y versión cargados del backend. Los datos se recargan solos (por ejemplo, mientras está
+  // "pending"): el editor y el selector solo se reemplazan si el usuario no los cambió desde la última carga,
+  // para no pisar lo que escribió. Si lo único que cambió es el estado de linteo, no se toca nada.
+  const loaded = useRef<{content: string, version: string} | null>(null);
+
   useEffect(() => {
-    if (snippet) {
-      setCode(snippet.content);
-      setUpdateError(null);
-      // La versión guardada del snippet (US #1/#3). Si no hay, se detecta por la sintaxis de 1.1
-      if (snippet.version) {
-        setVersion(snippet.version);
-      } else if (snippet.content.includes("const ") || snippet.content.includes("if ") || snippet.content.includes("readInput") || snippet.content.includes("readEnv")) {
-        setVersion("1.1");
-      }
-    }
+    if (!snippet) return;
+    // La versión guardada del snippet (US #1/#3). Si no hay, se detecta por la sintaxis de 1.1
+    const savedVersion = snippet.version
+      ?? ((snippet.content.includes("const ") || snippet.content.includes("if ") || snippet.content.includes("readInput") || snippet.content.includes("readEnv")) ? "1.1" : "1.0");
+    const previous = loaded.current;
+    if (previous && previous.content === snippet.content && previous.version === savedVersion) return;
+    setCode(current => (!previous || current === previous.content ? snippet.content : current));
+    setVersion(current => (!previous || current === previous.version ? savedVersion : current));
+    loaded.current = {content: snippet.content, version: savedVersion};
+    setUpdateError(null);
   }, [snippet]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -233,6 +252,10 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
   const handleSaveSnippet = async () => {
     setUpdateError(null);
     try {
+      if (!codeChanged) {
+        if (versionChanged) await updateSnippetMetadata({id, metadata: {version}});
+        return;
+      }
       let contentToSave = code;
       if (autoFormat) {
         try {
@@ -242,8 +265,8 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
           console.warn("Auto-format failed, saving current content", fErr);
         }
       }
-      const detectedVersion = (contentToSave.includes("const ") || contentToSave.includes("if ") || contentToSave.includes("readInput") || contentToSave.includes("readEnv")) ? "1.1" : version;
-      await updateSnippetContent({id: id, content: contentToSave, version: detectedVersion});
+      // Se guarda con la versión elegida: si el código no parsea en esa versión, el Runner devuelve el error
+      await updateSnippetContent({id: id, content: contentToSave, version});
 
       if (autoLint) {
         try {
@@ -271,7 +294,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
         await cancelExecution({snippetId: id, userId: user?.sub || ''});
     } else { // If not running, start
         try {
-            if (snippet && snippet.content !== code) {
+            if (isOwner && snippet && snippet.content !== code) {
                 await handleSaveSnippet();
             }
             // Reset del estado de la ejecución anterior
@@ -321,17 +344,27 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
             <Typography variant="body1" color="text.secondary" mb={1} sx={{ whiteSpace: 'pre-wrap' }}>
               {snippet?.description ? snippet.description : "No description"}
             </Typography>
+            {!isOwner && (
+              <Alert severity="info" sx={{ my: 1 }}>
+                Shared with you (read only): you can run it, lint it, preview the formatting, run its tests and
+                download it. Only the owner can edit, delete or share it.
+              </Alert>
+            )}
             <Box display="flex" flexDirection="row" gap="8px" padding="8px" alignItems="center" flexWrap="wrap">
-              <Tooltip title={"Edit name, description and language"}>
-                <IconButton onClick={() => setEditModalOpen(true)} disabled={!snippet}>
-                  <Edit/>
-                </IconButton>
-              </Tooltip>
-              <Tooltip title={"Share"}>
-                <IconButton onClick={() => setShareModalOppened(true)}>
-                  <Share/>
-                </IconButton>
-              </Tooltip>
+              {isOwner && (
+                <Tooltip title={"Edit name, description and language"}>
+                  <IconButton onClick={() => setEditModalOpen(true)} disabled={!snippet}>
+                    <Edit/>
+                  </IconButton>
+                </Tooltip>
+              )}
+              {isOwner && (
+                <Tooltip title={"Share"}>
+                  <IconButton onClick={() => setShareModalOppened(true)}>
+                    <Share/>
+                  </IconButton>
+                </Tooltip>
+              )}
               <Tooltip title={"Tests"}>
                 <IconButton onClick={() => {
                   setBottomTab(1);
@@ -341,11 +374,13 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                 </IconButton>
               </Tooltip>
               <DownloadButton snippet={snippet}/>
-              <Tooltip title={"Upload file"}>
-                <IconButton onClick={() => fileInputRef.current?.click()}>
-                  <UploadFile />
-                </IconButton>
-              </Tooltip>
+              {isOwner && (
+                <Tooltip title={"Upload file"}>
+                  <IconButton onClick={() => fileInputRef.current?.click()}>
+                    <UploadFile />
+                  </IconButton>
+                </Tooltip>
+              )}
               <input
                 type="file"
                 ref={fileInputRef}
@@ -361,6 +396,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                   label="Version"
                   onChange={(e) => setVersion(e.target.value)}
                   size="small"
+                  disabled={!isOwner}
                 >
                   <MenuItem value="1.0">1.0</MenuItem>
                   <MenuItem value="1.1">1.1</MenuItem>
@@ -383,20 +419,24 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                   <FactCheck />
                 </IconButton>
               </Tooltip>
-              <Tooltip title={"Save changes"}>
-                <IconButton color={"primary"} onClick={handleSaveSnippet} disabled={isUpdateSnippetLoading || snippet?.content === code} >
-                  <Save />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title={"Delete"}>
-                <IconButton onClick={() => setDeleteConfirmationModalOpen(true)} >
-                  <Delete color={"error"} />
-                </IconButton>
-              </Tooltip>
+              {isOwner && (
+                <Tooltip title={"Save changes"}>
+                  <IconButton color={"primary"} onClick={handleSaveSnippet} disabled={isUpdateSnippetLoading || isUpdateMetadataLoading || (!codeChanged && !versionChanged)} >
+                    <Save />
+                  </IconButton>
+                </Tooltip>
+              )}
+              {isOwner && (
+                <Tooltip title={"Delete"}>
+                  <IconButton onClick={() => setDeleteConfirmationModalOpen(true)} >
+                    <Delete color={"error"} />
+                  </IconButton>
+                </Tooltip>
+              )}
 
-              <Box sx={{ borderLeft: '1px solid #ccc', height: 28, mx: 1 }} />
+              {isOwner && <Box sx={{ borderLeft: '1px solid #ccc', height: 28, mx: 1 }} />}
 
-              <FormControlLabel
+              {isOwner && <FormControlLabel
                 control={
                   <Switch
                     size="small"
@@ -406,8 +446,8 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                   />
                 }
                 label={<Typography variant="body2" sx={{ userSelect: 'none' }}>Auto-format</Typography>}
-              />
-              <FormControlLabel
+              />}
+              {isOwner && <FormControlLabel
                 control={
                   <Switch
                     size="small"
@@ -417,7 +457,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                   />
                 }
                 label={<Typography variant="body2" sx={{ userSelect: 'none' }}>Auto-lint</Typography>}
-              />
+              />}
             </Box>
             {updateError && (
               <Alert severity="error" sx={{ whiteSpace: 'pre-wrap', my: 1.5 }}>
@@ -438,6 +478,7 @@ export const SnippetDetail = (props: SnippetDetailProps) => {
                     onValueChange={(code) => setCode(code)}
                     highlight={(code) => highlight(code, languages.js, "javascript")}
                     maxLength={1000}
+                    readOnly={!isOwner}
                     style={{
                       minHeight: "500px",
                       fontFamily: "monospace",

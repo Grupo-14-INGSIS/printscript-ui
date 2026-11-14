@@ -36,7 +36,9 @@ export const SnackbarProvider = ({children}: { children: ReactNode }) => {
             <>
                 {
                     snackbars.map((snackbar, i) => (
-                        <Snackbar key={i} open={snackbars.includes(snackbar)} autoHideDuration={6000}>
+                        // Sin onClose, autoHideDuration no hacía nada y los avisos se apilaban para siempre
+                        <Snackbar key={i} open={snackbars.includes(snackbar)} autoHideDuration={6000}
+                                  onClose={(_, reason) => { if (reason !== 'clickaway') handleDeleteSnackbar(snackbar) }}>
                             <Alert
                                 onClose={() => handleDeleteSnackbar(snackbar)}
                                 severity={snackbar.severity}

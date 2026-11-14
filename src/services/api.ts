@@ -41,6 +41,9 @@ export class ApiSnippetOperations implements SnippetOperations {
             } catch {
                 parsedMessage = errorBody;
             }
+            if (!parsedMessage && response.status === 403) {
+                throw new Error("You don't have permission to do this: only the snippet owner can change it.");
+            }
             throw new Error(parsedMessage || `HTTP error! status: ${response.status}`);
         }
 

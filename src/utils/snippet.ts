@@ -42,6 +42,7 @@ export type SnippetData = {
     description?: string;
     version?: string;
     content?: string | null;
+    permission?: 'owner' | 'shared';
 };
 
 export type Snippet = CreateSnippet & {
