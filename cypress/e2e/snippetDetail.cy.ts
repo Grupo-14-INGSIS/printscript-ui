@@ -102,22 +102,26 @@ describe('Snippet detail tests', () => {
     });
 
     it('Can format snippets', function() {
-        cy.intercept('GET', /\/api\/v1\/rules\?task=formatting/, (req) => {
+        // Formatea el Runner con el formatter de PrintScript (antes la UI pedía las reglas y formateaba ella)
+        cy.intercept('POST', /\/api\/v1\/snippets\/[^/]+\/tasks\/format$/, (req) => {
             req.continue((res) => {
                 expect(res.statusCode).to.eq(200);
             });
-        }).as('getFormatRules');
+        }).as('formatSnippet');
 
         cy.get('[data-testid="ReadMoreIcon"]').click();
 
-        cy.wait('@getFormatRules');
+        cy.wait('@formatSnippet');
         cy.contains('Snippet formatted successfully').should('be.visible');
-        cy.get('.npm__react-simple-code-editor__textarea').first().should('contain.value', 'println(greeting);');
+        // El espaciado depende de las reglas del usuario (ej. `println ( greeting );`): se compara sin espacios
+        cy.get('.npm__react-simple-code-editor__textarea').first().invoke('val')
+            .then((value) => expect(String(value).replace(/\s+/g, '')).to.include('println(greeting);'));
     });
 
     it('Can save snippets', function() {
         cy.intercept('PATCH', BACKEND_URL + '/api/v1/snippets/*', (req) => {
-            expect(req.body.content).to.include('println("saved");');
+            // Con "auto format", la UI formatea antes de guardar (ej. `println ( "saved" );`): se compara sin espacios
+            expect(String(req.body.content).replace(/\s+/g, '')).to.include('println("saved");');
             req.continue((res) => {
                 expect(res.statusCode).to.eq(200);
             });
