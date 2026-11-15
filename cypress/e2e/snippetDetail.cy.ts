@@ -102,22 +102,31 @@ describe('Snippet detail tests', () => {
     });
 
     it('Can format snippets', function() {
-        cy.intercept('GET', /\/api\/v1\/rules\?task=formatting/, (req) => {
+        // El formateo lo hace el Runner con el formatter de PrintScript y las reglas del usuario
+        // (vista previa: no guarda). La UI reemplaza el editor con lo que devuelve.
+        cy.intercept('POST', /\/api\/v1\/snippets\/[^/]+\/tasks\/format$/, (req) => {
             req.continue((res) => {
                 expect(res.statusCode).to.eq(200);
             });
-        }).as('getFormatRules');
+        }).as('formatSnippet');
 
         cy.get('[data-testid="ReadMoreIcon"]').click();
 
-        cy.wait('@getFormatRules');
-        cy.contains('Snippet formatted successfully').should('be.visible');
-        cy.get('.npm__react-simple-code-editor__textarea').first().should('contain.value', 'println(greeting);');
+        cy.wait('@formatSnippet').then((interception) => {
+            // El backend responde el código formateado como texto plano
+            const formatted = interception.response?.body;
+            expect(formatted, 'formatted content').to.be.a('string').and.not.equal('');
+            cy.contains('Snippet formatted successfully').should('be.visible');
+            // El resultado depende de las reglas del usuario de prueba: se compara con lo que devolvió el backend
+            cy.get('.npm__react-simple-code-editor__textarea').first().should('have.value', formatted);
+        });
     });
 
     it('Can save snippets', function() {
         cy.intercept('PATCH', BACKEND_URL + '/api/v1/snippets/*', (req) => {
-            expect(req.body.content).to.include('println("saved");');
+            // Con "auto format" activado, la UI formatea antes de guardar con las reglas del usuario
+            // (por ejemplo `println ( "saved" );`): se compara sin espacios.
+            expect(String(req.body.content).replace(/\s+/g, '')).to.include('println("saved");');
             req.continue((res) => {
                 expect(res.statusCode).to.eq(200);
             });
