@@ -102,8 +102,7 @@ describe('Snippet detail tests', () => {
     });
 
     it('Can format snippets', function() {
-        // El formateo lo hace el Runner con el formatter de PrintScript y las reglas del usuario
-        // (vista previa: no guarda). La UI reemplaza el editor con lo que devuelve.
+        // Formatea el Runner con el formatter de PrintScript (antes la UI pedía las reglas y formateaba ella)
         cy.intercept('POST', /\/api\/v1\/snippets\/[^/]+\/tasks\/format$/, (req) => {
             req.continue((res) => {
                 expect(res.statusCode).to.eq(200);
@@ -112,20 +111,16 @@ describe('Snippet detail tests', () => {
 
         cy.get('[data-testid="ReadMoreIcon"]').click();
 
-        cy.wait('@formatSnippet').then((interception) => {
-            // El backend responde el código formateado como texto plano
-            const formatted = interception.response?.body;
-            expect(formatted, 'formatted content').to.be.a('string').and.not.equal('');
-            cy.contains('Snippet formatted successfully').should('be.visible');
-            // El resultado depende de las reglas del usuario de prueba: se compara con lo que devolvió el backend
-            cy.get('.npm__react-simple-code-editor__textarea').first().should('have.value', formatted);
-        });
+        cy.wait('@formatSnippet');
+        cy.contains('Snippet formatted successfully').should('be.visible');
+        // El espaciado depende de las reglas del usuario (ej. `println ( greeting );`): se compara sin espacios
+        cy.get('.npm__react-simple-code-editor__textarea').first().invoke('val')
+            .then((value) => expect(String(value).replace(/\s+/g, '')).to.include('println(greeting);'));
     });
 
     it('Can save snippets', function() {
         cy.intercept('PATCH', BACKEND_URL + '/api/v1/snippets/*', (req) => {
-            // Con "auto format" activado, la UI formatea antes de guardar con las reglas del usuario
-            // (por ejemplo `println ( "saved" );`): se compara sin espacios.
+            // Con "auto format", la UI formatea antes de guardar (ej. `println ( "saved" );`): se compara sin espacios
             expect(String(req.body.content).replace(/\s+/g, '')).to.include('println("saved");');
             req.continue((res) => {
                 expect(res.statusCode).to.eq(200);
