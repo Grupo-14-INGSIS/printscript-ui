@@ -3,11 +3,10 @@ version: '3.8'
 
 services:
   snippetsearcher-ui:
-    image: ghcr.io/grupo-14-ingsis/printscript-ui-:${IMAGE_TAG:?falta IMAGE_TAG}
+    image: ghcr.io/grupo-14-ingsis/printscript-ui:${IMAGE_TAG:?falta IMAGE_TAG}
     networks: [snippetsearcher-net]
     deploy:
       replicas: 2
-      restart_policy: {condition: on-failure, delay: 5s, max_attempts: 3, window: 120s}
       update_config: { parallelism: 1, delay: 10s, order: start-first,
         failure_action: rollback}
 
