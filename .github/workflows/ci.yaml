@@ -117,7 +117,7 @@ jobs:
           IMAGE_VERSION: ${{ needs.build-and-push.outputs.image_version }}
           IMAGE: ghcr.io/grupo-14-ingsis/printscript-ui
           BRANCH: ${{ needs.build-and-push.outputs.infra_branch }}
-          COMPOSE_FILE: "stacks/ui.yml"
+          COMPOSE_FILE: "docker-stack.yml"
         run: |
           set -euo pipefail
 
