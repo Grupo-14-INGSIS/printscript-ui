@@ -1,0 +1,14 @@
+#es el archivo de docker stack más cosrto de todos. La ui no necesita casi nada en la vm dado que es una pp deReact ya compilada. Archivos html, css, js servidos por un nginx uque vive dentro de la imagen
+version: '3.8'
+
+services:
+  snippetsearcher-ui:
+    image: ghcr.io/grupo-14-ingsis/printscript-ui:${IMAGE_TAG:?falta IMAGE_TAG}
+    networks: [snippetsearcher-net]
+    deploy:
+      replicas: 2
+      update_config: { parallelism: 1, delay: 10s, order: start-first,
+        failure_action: rollback}
+
+networks:
+  snippetsearcher-net: {external: true}
